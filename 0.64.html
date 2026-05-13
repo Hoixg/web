@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>我的主页 v0.64</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: #1a1a2e;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      transition: background-image 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    body.default-bg {
+      background-image: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    }
+
+    body.no-scroll {
+      overflow: hidden;
+    }
+
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(10px);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 30px;
+      font-size: 0.9em;
+      opacity: 0;
+      transition: opacity 0.3s, transform 0.3s;
+      transform: translateY(-10px);
+      pointer-events: auto;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .main-container {
+      text-align: center;
+      width: 100%;
+      max-width: 700px;
+      padding: 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .settings-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: white;
+      font-size: 22px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, transform 0.2s;
+      z-index: 1000;
+    }
+
+    .settings-btn:hover {
+      background: rgba(255, 255, 255, 0.25);
+      transform: rotate(30deg);
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 999;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s, visibility 0.3s;
+      touch-action: none;
+    }
+
+    .overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .settings-panel {
+      position: fixed;
+      top: 0;
+      right: -400px;
+      width: 360px;
+      max-width: 85vw;
+      height: 100vh;
+      background: rgba(20, 20, 40, 0.95);
+      backdrop-filter: blur(15px);
+      border-left: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: -5px 0 25px rgba(0, 0, 0, 0.5);
+      z-index: 1001;
+      padding: 25px 20px;
+      color: #e0e0e0;
+      transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .settings-panel.open {
+      right: 0;
+    }
+
+    .settings-panel::-webkit-scrollbar {
+      width: 4px;
+    }
+    .settings-panel::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.3);
+      border-radius: 2px;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      font-size: 1.4em;
+      font-weight: 300;
+      letter-spacing: 1px;
+      color: #ffffff;
+      flex-shrink: 0;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: #aaa;
+      font-size: 28px;
+      cursor: pointer;
+      line-height: 1;
+      transition: color 0.2s;
+    }
+
+    .close-btn:hover {
+      color: #fff;
+    }
+
+    /* 折叠分区样式 */
+    .section {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      margin-bottom: 10px;
+      flex-shrink: 0;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.2s;
+    }
+
+    .section-header:hover {
+      color: #fff;
+    }
+
+    .section-header .section-title {
+      font-size: 0.9em;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #aaa;
+      transition: color 0.2s;
+      margin: 0;
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .section-header:hover .section-title {
+      color: #fff;
+    }
+
+    .section-arrow {
+      font-size: 14px;
+      transition: transform 0.3s ease;
+      color: #888;
+    }
+
+    .section.collapsed .section-arrow {
+      transform: rotate(-90deg);
+    }
+
+    .section-body {
+      max-height: 99999px; /* 修复 3：从 9999px 增大到 99999px */
+      overflow: hidden;
+      transition: max-height 0.4s ease, padding 0.3s ease, opacity 0.3s ease;
+      padding-bottom: 10px;
+    }
+
+    .section.collapsed .section-body {
+      max-height: 0;
+      padding-bottom: 0;
+      opacity: 0;
+    }
+
+    .engine-list {
+      list-style: none;
+      margin-bottom: 15px;
+    }
+
+    .engine-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      transition: background 0.2s;
+      gap: 8px;
+    }
+
+    .engine-item:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .engine-name {
+      font-weight: 500;
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .engine-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .edit-engine, .delete-engine {
+      background: none;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      transition: color 0.2s, background 0.2s;
+    }
+
+    .edit-engine {
+      color: #5c9ce6;
+    }
+    .edit-engine:hover {
+      background: rgba(92, 156, 230, 0.2);
+    }
+    .delete-engine {
+      color: #ff6b6b;
+    }
+    .delete-engine:hover {
+      background: rgba(255, 107, 107, 0.2);
+    }
+
+    .add-engine-form {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .add-engine-form input,
+    .wallpaper-input input,
+    .suggestion-source select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 10px 12px;
+      border-radius: 6px;
+      color: white;
+      font-size: 0.95em;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    .add-engine-form input:focus,
+    .wallpaper-input input:focus,
+    .suggestion-source select:focus {
+      border-color: #5c9ce6;
+    }
+
+    .add-engine-form button,
+    .wallpaper-input button {
+      background: #5c9ce6;
+      border: none;
+      padding: 10px;
+      border-radius: 6px;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .add-engine-form button:hover,
+    .wallpaper-input button:hover {
+      background: #4a8ad4;
+    }
+
+    .wallpaper-input {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .wallpaper-input input {
+      flex: 1;
+    }
+
+    .preview-box {
+      width: 100%;
+      height: 120px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px dashed rgba(255, 255, 255, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+      overflow: hidden;
+      position: relative;
+      color: #aaa;
+      font-size: 0.9em;
+      transition: border 0.2s;
+    }
+
+    .preview-box.has-image {
+      border: 1px solid rgba(92, 156, 230, 0.5);
+    }
+
+    .preview-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .preview-status {
+      position: absolute;
+      bottom: 6px;
+      right: 10px;
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      font-size: 0.75em;
+      padding: 2px 8px;
+      border-radius: 10px;
+      display: none;
+    }
+
+    .preview-box.has-image .preview-status {
+      display: block;
+    }
+
+    .reset-wallpaper {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 8px 14px;
+      border-radius: 6px;
+      color: #ccc;
+      cursor: pointer;
+      font-size: 0.9em;
+      transition: background 0.2s;
+      margin-bottom: 10px;
+    }
+
+    .reset-wallpaper:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .suggestion-source {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .suggestion-source label {
+      font-size: 0.9em;
+      color: #ccc;
+    }
+
+    .suggestion-source select {
+      flex: 1;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    .data-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .data-actions button {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 8px 10px;
+      border-radius: 6px;
+      color: #ccc;
+      cursor: pointer;
+      font-size: 0.85em;
+      transition: background 0.2s;
+    }
+
+    .data-actions button:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .version-info {
+      text-align: center;
+      font-size: 0.75em;
+      color: #666;
+      margin-top: 20px;
+      flex-shrink: 0;
+      padding-bottom: 10px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 15px;
+      letter-spacing: 0.5px;
+    }
+
+    .search-section {
+      margin-bottom: 40px;
+    }
+
+    .search-wrapper {
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(12px);
+      border-radius: 50px;
+      padding: 0 18px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: box-shadow 0.3s;
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .search-wrapper:focus-within {
+      box-shadow: 0 0 20px rgba(92, 156, 230, 0.4);
+    }
+
+    .engine-selector {
+      position: relative;
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 30px;
+      padding: 8px 14px;
+      cursor: pointer;
+      user-select: none;
+      margin-right: 10px;
+      transition: background 0.2s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .engine-selector:hover {
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    .current-engine {
+      font-weight: 500;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .arrow-down {
+      font-size: 12px;
+      margin-left: 4px;
+      transition: transform 0.2s;
+    }
+
+    .engine-selector.active .arrow-down {
+      transform: rotate(180deg);
+    }
+
+    .engine-dropdown {
+      position: absolute;
+      top: calc(100% + 10px);
+      left: 0;
+      background: rgba(30, 30, 50, 0.95);
+      backdrop-filter: blur(15px);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+      list-style: none;
+      min-width: 160px;
+      z-index: 100;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-8px);
+      transition: all 0.2s ease;
+      overflow: hidden;
+    }
+
+    .engine-dropdown.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .engine-dropdown li {
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+      color: #ddd;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .engine-dropdown li:hover {
+      background: rgba(92, 156, 230, 0.3);
+      color: white;
+    }
+
+    .engine-dropdown li.active {
+      background: rgba(92, 156, 230, 0.4);
+      color: white;
+      font-weight: 600;
+    }
+
+    .search-input-area {
+      flex: 1;
+      position: relative; /* 修复 1：让 suggestionsBox 正确定位 */
+      display: flex;
+      align-items: center;
+    }
+
+    .search-input {
+      width: 100%;
+      background: none;
+      border: none;
+      padding: 16px 10px;
+      font-size: 1.1em;
+      color: white;
+      outline: none;
+      min-width: 0;
+    }
+
+    .search-input::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .search-button {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.4em;
+      cursor: pointer;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      border-radius: 50%;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+
+    .search-button:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .suggestions-box {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      right: 0;
+      max-height: 240px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      background: rgba(30, 30, 50, 0.95);
+      backdrop-filter: blur(15px);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+      list-style: none;
+      z-index: 101;
+      display: none;
+    }
+
+    .suggestions-box.show {
+      display: block;
+    }
+
+    .suggestion-item {
+      padding: 12px 16px;
+      cursor: pointer;
+      color: #ddd;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .suggestion-item:hover,
+    .suggestion-item.active-suggestion {
+      background: rgba(92, 156, 230, 0.3);
+      color: white;
+    }
+
+    .suggestion-icon {
+      opacity: 0.7;
+      font-size: 0.9em;
+    }
+
+    /* 自动聚焦开关样式 */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+    }
+
+    .toggle-row label {
+      font-size: 0.9em;
+      color: #ccc;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.3s;
+      flex-shrink: 0;
+    }
+
+    .toggle-switch.active {
+      background: #5c9ce6;
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.3s;
+    }
+
+    .toggle-switch.active::after {
+      transform: translateX(20px);
+    }
+
+    @media (max-width: 600px) {
+      .search-wrapper {
+        padding: 0 12px;
+      }
+      .engine-selector {
+        padding: 6px 10px;
+        font-size: 0.9em;
+      }
+    }
+  </style>
+</head>
+<body class="default-bg">
+  <div class="toast-container" id="toastContainer"></div>
+
+  <div class="settings-btn" id="settingsBtn">⚙️</div>
+  <div class="overlay" id="overlay"></div>
+
+  <div class="settings-panel" id="settingsPanel">
+    <div class="panel-header">
+      <span>设置</span>
+      <button class="close-btn" id="closePanelBtn">✕</button>
+    </div>
+
+    <!-- 搜索引擎管理分区 -->
+    <div class="section" id="sectionEngines">
+      <div class="section-header">
+        <span class="section-title">🔍 搜索引擎管理</span>
+        <span class="section-arrow">▼</span>
+      </div>
+      <div class="section-body">
+        <ul class="engine-list" id="engineList"></ul>
+        <div class="add-engine-form">
+          <input type="text" id="newEngineName" placeholder="引擎名称，如 Google">
+          <input type="text" id="newEngineUrl" placeholder="搜索URL，使用 {keyword} 占位">
+          <button id="addEngineBtn">添加引擎</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 自定义壁纸分区 -->
+    <div class="section" id="sectionWallpaper">
+      <div class="section-header">
+        <span class="section-title">🎨 自定义壁纸</span>
+        <span class="section-arrow">▼</span>
+      </div>
+      <div class="section-body">
+        <div class="wallpaper-input">
+          <input type="text" id="wallpaperUrl" placeholder="输入图片直链，如 https://...">
+          <button id="saveWallpaperBtn">保存</button>
+        </div>
+        <div class="preview-box" id="previewBox">
+          <span id="previewPlaceholder">预览区域</span>
+          <span class="preview-status" id="previewStatus"></span>
+        </div>
+        <button class="reset-wallpaper" id="resetWallpaperBtn">恢复默认背景</button>
+      </div>
+    </div>
+
+    <!-- 搜索建议分区 -->
+    <div class="section" id="sectionSuggestions">
+      <div class="section-header">
+        <span class="section-title">💡 搜索建议</span>
+        <span class="section-arrow">▼</span>
+      </div>
+      <div class="section-body">
+        <div class="suggestion-source">
+          <label for="suggestionSourceSelect">来源：</label>
+          <select id="suggestionSourceSelect">
+            <option value="google">Google (需翻墙)</option>
+            <option value="bing">Bing (国内可用)</option>
+            <option value="duckduckgo">DuckDuckGo (备选)</option>
+          </select>
+        </div>
+        <!-- 自动聚焦开关 -->
+        <div class="toggle-row">
+          <label for="autofocusToggle">页面加载时自动聚焦搜索框</label>
+          <div class="toggle-switch active" id="autofocusToggle" title="开启后页面加载自动弹出键盘（移动端）"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 数据管理分区 -->
+    <div class="section" id="sectionData">
+      <div class="section-header">
+        <span class="section-title">💾 数据管理</span>
+        <span class="section-arrow">▼</span>
+      </div>
+      <div class="section-body">
+        <div class="data-actions">
+          <button id="exportDataBtn">导出设置</button>
+          <button id="importDataBtn">导入设置</button>
+        </div>
+        <input type="file" id="importFileInput" accept=".json" style="display:none;">
+      </div>
+    </div>
+
+    <!-- 版本信息 -->
+    <div class="version-info">
+      v0.64 · 更新于 2026-05-13
+    </div>
+
+    <div style="height: 20px; flex-shrink: 0;"></div>
+  </div>
+
+  <div class="main-container">
+    <div class="search-section">
+      <div class="search-wrapper">
+        <div class="engine-selector" id="engineSelector">
+          <span class="current-engine" id="currentEngineDisplay">Google</span>
+          <span class="arrow-down">▼</span>
+          <ul class="engine-dropdown" id="engineDropdown"></ul>
+        </div>
+        <div class="search-input-area">
+          <input type="text" class="search-input" id="searchInput" placeholder="输入关键词搜索..." autocomplete="off">
+          <ul class="suggestions-box" id="suggestionsBox"></ul>
+        </div>
+        <button class="search-button" id="searchButton">🔍</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  (function() {
+    // ==================== 默认数据 ====================
+    const DEFAULT_ENGINES = [
+      { name: 'Google', url: 'https://www.google.com/search?q={keyword}' },
+      { name: 'Bing', url: 'https://www.bing.com/search?q={keyword}' },
+      { name: '百度', url: 'https://www.baidu.com/s?wd={keyword}' },
+      { name: 'DuckDuckGo', url: 'https://duckduckgo.com/?q={keyword}' }
+    ];
+
+    // ==================== 存储操作 ====================
+    function loadEngines() {
+      try {
+        const stored = localStorage.getItem('searchEngines');
+        return stored ? JSON.parse(stored) : [...DEFAULT_ENGINES];
+      } catch { return [...DEFAULT_ENGINES]; }
+    }
+    function saveEngines(engines) { localStorage.setItem('searchEngines', JSON.stringify(engines)); }
+    function loadCurrentIndex() { return parseInt(localStorage.getItem('currentEngineIndex') || '0', 10); }
+    function saveCurrentIndex(index) { localStorage.setItem('currentEngineIndex', index.toString()); }
+    function loadWallpaper() { return localStorage.getItem('wallpaperUrl') || ''; }
+    function saveWallpaper(url) { if (url) localStorage.setItem('wallpaperUrl', url); else localStorage.removeItem('wallpaperUrl'); }
+    function loadSuggestionSource() { return localStorage.getItem('suggestionSource') || 'google'; }
+    function saveSuggestionSource(source) { localStorage.setItem('suggestionSource', source); }
+    function loadAutofocus() { return localStorage.getItem('autofocus') !== 'false'; }
+    function saveAutofocus(enabled) { localStorage.setItem('autofocus', enabled ? 'true' : 'false'); }
+
+    let engines = loadEngines();
+    let currentIndex = loadCurrentIndex();
+    if (currentIndex >= engines.length || currentIndex < 0) { currentIndex = 0; saveCurrentIndex(0); }
+
+    const body = document.body;
+    const settingsBtn = document.getElementById('settingsBtn');
+    const overlay = document.getElementById('overlay');
+    const settingsPanel = document.getElementById('settingsPanel');
+    const closePanelBtn = document.getElementById('closePanelBtn');
+    const engineListEl = document.getElementById('engineList');
+    const newEngineName = document.getElementById('newEngineName');
+    const newEngineUrl = document.getElementById('newEngineUrl');
+    const addEngineBtn = document.getElementById('addEngineBtn');
+    const wallpaperUrlInput = document.getElementById('wallpaperUrl');
+    const saveWallpaperBtn = document.getElementById('saveWallpaperBtn');
+    const resetWallpaperBtn = document.getElementById('resetWallpaperBtn');
+    const previewBox = document.getElementById('previewBox');
+    const engineSelector = document.getElementById('engineSelector');
+    const currentEngineDisplay = document.getElementById('currentEngineDisplay');
+    const engineDropdown = document.getElementById('engineDropdown');
+    const searchInput = document.getElementById('searchInput');
+    const searchButton = document.getElementById('searchButton');
+    const suggestionsBox = document.getElementById('suggestionsBox');
+    const exportDataBtn = document.getElementById('exportDataBtn');
+    const importDataBtn = document.getElementById('importDataBtn');
+    const importFileInput = document.getElementById('importFileInput');
+    const toastContainer = document.getElementById('toastContainer');
+    const suggestionSourceSelect = document.getElementById('suggestionSourceSelect');
+    const autofocusToggle = document.getElementById('autofocusToggle');
+
+    // ==================== 自动聚焦开关 ====================
+    let autofocusEnabled = loadAutofocus();
+    if (autofocusEnabled) {
+      searchInput.setAttribute('autofocus', 'autofocus');
+      autofocusToggle.classList.add('active');
+    } else {
+      searchInput.removeAttribute('autofocus');
+      autofocusToggle.classList.remove('active');
+    }
+
+    autofocusToggle.addEventListener('click', function() {
+      autofocusEnabled = !autofocusEnabled;
+      saveAutofocus(autofocusEnabled);
+      if (autofocusEnabled) {
+        this.classList.add('active');
+        searchInput.setAttribute('autofocus', 'autofocus');
+        searchInput.focus();
+      } else {
+        this.classList.remove('active');
+        searchInput.removeAttribute('autofocus');
+        searchInput.blur();
+      }
+      showToast(autofocusEnabled ? '自动聚焦已开启' : '自动聚焦已关闭');
+    });
+
+    // ==================== Toast 防堆积 ====================
+    let toastTimer = null;
+    function showToast(message, duration = 2000) {
+      if (toastTimer) clearTimeout(toastTimer);
+      const existing = toastContainer.querySelector('.toast');
+      if (existing) {
+        existing.classList.remove('show');
+        setTimeout(() => existing.remove(), 300);
+      }
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = message;
+      toastContainer.appendChild(toast);
+      void toast.offsetWidth;
+      toast.classList.add('show');
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      }, duration);
+    }
+
+    // ==================== 修复 2：CSS 注入防护（增强版）====================
+    function escapeCssUrl(url) {
+      // 使用 encodeURI 编码所有特殊字符，再额外编码引号
+      // encodeURI 不编码: A-Z a-z 0-9 ; , / ? : @ & = + $ - _ . ! ~ * ' ( ) #
+      // 所以手动处理单引号/双引号/反斜杠
+      return encodeURI(url)
+        .replace(/'/g, '%27')
+        .replace(/"/g, '%22')
+        .replace(/\\/g, '%5C');
+    }
+
+    function applyWallpaper(url) {
+      if (url) {
+        const safeUrl = escapeCssUrl(url);
+        body.style.backgroundImage = `url('${safeUrl}')`;
+        body.classList.remove('default-bg');
+      } else {
+        body.style.backgroundImage = '';
+        body.classList.add('default-bg');
+      }
+    }
+
+    const savedWallpaper = loadWallpaper();
+    applyWallpaper(savedWallpaper);
+    if (savedWallpaper) wallpaperUrlInput.value = savedWallpaper;
+
+    // ==================== 修复 4：URL 规范化（增强版）====================
+    function normalizeUrl(url) {
+      url = url.trim();
+      if (!url) return '';
+      // 用 URL 构造函数验证合法性
+      try {
+        if (!/^https?:\/\//i.test(url)) {
+          url = 'https://' + url;
+        }
+        const parsed = new URL(url);
+        // 只允许 http/https 协议
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          return url; // 非标准协议不处理
+        }
+        return parsed.href;
+      } catch {
+        showToast('无效的 URL 格式');
+        return url;
+      }
+    }
+
+    // ==================== 面板开关 ====================
+    function openPanel() {
+      settingsPanel.classList.add('open');
+      overlay.classList.add('active');
+      body.classList.add('no-scroll');
+    }
+    function closePanel() {
+      settingsPanel.classList.remove('open');
+      overlay.classList.remove('active');
+      body.classList.remove('no-scroll');
+    }
+    settingsBtn.addEventListener('click', openPanel);
+    closePanelBtn.addEventListener('click', closePanel);
+    overlay.addEventListener('click', closePanel);
+
+    // ESC 关闭设置面板
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && settingsPanel.classList.contains('open')) {
+        closePanel();
+      }
+    });
+
+    // 设置面板滚动穿透防护
+    (function() {
+      let startY = 0;
+      settingsPanel.addEventListener('touchstart', function(e) {
+        startY = e.touches[0].clientY;
+      }, { passive: true });
+
+      settingsPanel.addEventListener('touchmove', function(e) {
+        const currentY = e.touches[0].clientY;
+        const scrollTop = settingsPanel.scrollTop;
+        const scrollHeight = settingsPanel.scrollHeight;
+        const clientHeight = settingsPanel.clientHeight;
+        const isAtTop = scrollTop === 0;
+        const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1;
+        const directionDown = currentY > startY;
+        const directionUp = currentY < startY;
+        if ((isAtTop && directionDown) || (isAtBottom && directionUp)) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+    })();
+
+    // ==================== 修复 3：折叠交互（动态高度适配）====================
+    function initCollapse() {
+      document.querySelectorAll('.section-header').forEach(header => {
+        header.addEventListener('click', function() {
+          const section = this.parentElement;
+          const body = section.querySelector('.section-body');
+          if (section.classList.contains('collapsed')) {
+            // 展开：先设置精确高度过渡，完成后移除 max-height 约束
+            section.classList.remove('collapsed');
+            body.style.maxHeight = body.scrollHeight + 'px';
+            setTimeout(() => {
+              if (!section.classList.contains('collapsed')) {
+                body.style.maxHeight = 'none';
+              }
+            }, 450);
+          } else {
+            // 收起：锁定当前高度后过渡到 0
+            body.style.maxHeight = body.scrollHeight + 'px';
+            void body.offsetWidth;
+            section.classList.add('collapsed');
+            body.style.maxHeight = '0px';
+            setTimeout(() => {
+              if (section.classList.contains('collapsed')) {
+                body.style.maxHeight = '0px';
+              }
+            }, 450);
+          }
+        });
+      });
+    }
+    initCollapse();
+
+    // ==================== 搜索引擎列表渲染 ====================
+    function renderEngineList() {
+      engineListEl.innerHTML = '';
+      engines.forEach((engine, index) => {
+        const li = document.createElement('li');
+        li.className = 'engine-item';
+        li.innerHTML = `
+          <span class="engine-name" title="${escapeHtml(engine.name)}">${escapeHtml(engine.name)}</span>
+          <div class="engine-actions">
+            <button class="edit-engine" data-index="${index}" title="编辑">✎</button>
+            <button class="delete-engine" data-index="${index}" ${engines.length <= 1 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} title="删除">🗑️</button>
+          </div>
+        `;
+        engineListEl.appendChild(li);
+      });
+
+      document.querySelectorAll('.edit-engine').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          editEngine(parseInt(this.dataset.index));
+        });
+      });
+
+      document.querySelectorAll('.delete-engine').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          const idx = parseInt(this.dataset.index);
+          if (engines.length <= 1) return;
+          engines.splice(idx, 1);
+          saveEngines(engines);
+          if (currentIndex >= engines.length) {
+            currentIndex = engines.length - 1;
+          } else if (currentIndex > idx) {
+            currentIndex--;
+          }
+          saveCurrentIndex(currentIndex);
+          updateAllUI();
+          showToast('引擎已删除');
+        });
+      });
+    }
+
+    function editEngine(index) {
+      const engine = engines[index];
+      const nameInput = prompt('修改引擎名称：', engine.name);
+      if (nameInput === null) return;
+      const nameTrim = nameInput.trim();
+      if (!nameTrim) { showToast('名称不能为空'); return; }
+      // 修复 8：更清晰的冲突提示
+      const conflict = engines.find((e, i) => i !== index && e.name.toLowerCase() === nameTrim.toLowerCase());
+      if (conflict) {
+        showToast(`名称"${nameTrim}"与现有引擎冲突`);
+        return;
+      }
+      let url = prompt('修改搜索 URL（使用 {keyword} 占位）：', engine.url);
+      if (url === null) return;
+      url = url.trim();
+      if (!url) { showToast('URL 不能为空'); return; }
+      url = url.replace('%s', '{keyword}');
+      if (!url.includes('{keyword}')) { showToast('URL 必须包含 {keyword} 占位符'); return; }
+      engines[index] = { name: nameTrim, url };
+      saveEngines(engines);
+      updateAllUI();
+      showToast('引擎已更新');
+    }
+
+    function escapeHtml(text) {
+      const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+      return text.replace(/[&<>"']/g, m => map[m]);
+    }
+
+    // ==================== 添加引擎 ====================
+    function addEngine() {
+      const name = newEngineName.value.trim();
+      let url = newEngineUrl.value.trim();
+      if (!name || !url) { showToast('请填写引擎名称和搜索URL'); return; }
+      // 修复 8：说明具体冲突名称
+      const conflict = engines.find(e => e.name.toLowerCase() === name.toLowerCase());
+      if (conflict) {
+        showToast(`引擎名称"${name}"已存在`);
+        return;
+      }
+      url = url.replace('%s', '{keyword}');
+      if (!url.includes('{keyword}')) { showToast('URL 必须包含 {keyword} 占位符'); return; }
+      engines.push({ name, url });
+      saveEngines(engines);
+      newEngineName.value = '';
+      newEngineUrl.value = '';
+      updateAllUI();
+      showToast('引擎已添加');
+    }
+    addEngineBtn.addEventListener('click', addEngine);
+    newEngineUrl.addEventListener('keydown', (e) => { if (e.key === 'Enter') addEngine(); });
+
+    // ==================== 壁纸保存（修复 5：验证真实图片尺寸）====================
+    saveWallpaperBtn.addEventListener('click', () => {
+      let url = wallpaperUrlInput.value.trim();
+      if (!url) { showToast('请输入图片链接'); return; }
+      url = normalizeUrl(url);
+      if (!url) return;
+      wallpaperUrlInput.value = url;
+      const testImg = new Image();
+      testImg.crossOrigin = 'anonymous'; // 避免跨域干扰
+      testImg.onload = () => {
+        // 修复 5：检查真实图片尺寸，防止非图片资源通过 onload
+        if (testImg.naturalWidth === 0 && testImg.naturalHeight === 0) {
+          showToast('图片无法加载，请检查链接');
+          return;
+        }
+        saveWallpaper(url);
+        applyWallpaper(url);
+        showToast('壁纸已更新');
+      };
+      testImg.onerror = () => { showToast('图片无法加载，请检查链接'); };
+      testImg.src = url;
+    });
+
+    resetWallpaperBtn.addEventListener('click', () => {
+      saveWallpaper('');
+      applyWallpaper('');
+      wallpaperUrlInput.value = '';
+      updatePreview('');
+      showToast('已恢复默认背景');
+    });
+
+    let previewTimer;
+    function updatePreview(url) {
+      if (!url) {
+        previewBox.innerHTML = '<span id="previewPlaceholder">预览区域</span>';
+        previewBox.classList.remove('has-image');
+        return;
+      }
+      const img = new Image();
+      img.onload = () => {
+        previewBox.innerHTML = '';
+        const imgEl = document.createElement('img');
+        imgEl.src = url;
+        imgEl.alt = '预览';
+        previewBox.appendChild(imgEl);
+        const statusEl = document.createElement('span');
+        statusEl.className = 'preview-status';
+        statusEl.textContent = `${img.naturalWidth}×${img.naturalHeight}`;
+        previewBox.appendChild(statusEl);
+        previewBox.classList.add('has-image');
+      };
+      img.onerror = () => {
+        previewBox.innerHTML = '<span style="color:#ff6b6b;">图片加载失败</span>';
+        previewBox.classList.remove('has-image');
+      };
+      img.src = url;
+    }
+
+    wallpaperUrlInput.addEventListener('input', () => {
+      clearTimeout(previewTimer);
+      const url = wallpaperUrlInput.value.trim();
+      previewTimer = setTimeout(() => updatePreview(url), 500);
+    });
+    if (savedWallpaper) updatePreview(savedWallpaper);
+
+    // ==================== 导出/导入 ====================
+    function exportData() {
+      const data = {
+        engines,
+        currentIndex,
+        wallpaper: loadWallpaper(),
+        suggestionSource: loadSuggestionSource(),
+        autofocus: autofocusEnabled
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `homepage-backup-${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('设置已导出');
+    }
+
+    function importData(file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (data.engines && Array.isArray(data.engines) && data.engines.length > 0) {
+            // 导入时过滤不含 {keyword} 的引擎
+            const validEngines = data.engines.filter(engine => {
+              return engine.name && engine.url && engine.url.includes('{keyword}');
+            });
+            if (validEngines.length === 0) {
+              showToast('文件中没有有效的引擎（需包含 {keyword} 占位符）');
+              return;
+            }
+            engines = validEngines;
+            saveEngines(engines);
+            currentIndex = (data.currentIndex >= 0 && data.currentIndex < engines.length) ? data.currentIndex : 0;
+            saveCurrentIndex(currentIndex);
+            if (data.wallpaper !== undefined) {
+              saveWallpaper(data.wallpaper);
+              applyWallpaper(data.wallpaper);
+              wallpaperUrlInput.value = data.wallpaper;
+              updatePreview(data.wallpaper);
+            } else {
+              saveWallpaper('');
+              applyWallpaper('');
+              wallpaperUrlInput.value = '';
+              updatePreview('');
+            }
+            if (data.suggestionSource) {
+              saveSuggestionSource(data.suggestionSource);
+              suggestionSourceSelect.value = data.suggestionSource;
+              currentSuggestionSource = data.suggestionSource;
+              // 修复 6：导入后立即更新搜索建议来源
+              const query = searchInput.value.trim();
+              if (query) requestSuggestions(query);
+            }
+            // 导入自动聚焦设置
+            if (data.autofocus !== undefined) {
+              autofocusEnabled = !!data.autofocus;
+              saveAutofocus(autofocusEnabled);
+              if (autofocusEnabled) {
+                autofocusToggle.classList.add('active');
+                searchInput.setAttribute('autofocus', 'autofocus');
+              } else {
+                autofocusToggle.classList.remove('active');
+                searchInput.removeAttribute('autofocus');
+              }
+            }
+            updateAllUI();
+            showToast('设置已导入（有效引擎 ' + validEngines.length + ' 个）');
+          } else {
+            showToast('无效的备份文件');
+          }
+        } catch (err) {
+          showToast('文件解析失败');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    exportDataBtn.addEventListener('click', exportData);
+    importDataBtn.addEventListener('click', () => importFileInput.click());
+    importFileInput.addEventListener('change', (e) => {
+      if (e.target.files[0]) { importData(e.target.files[0]); importFileInput.value = ''; }
+    });
+
+    // ==================== 搜索引擎切换 UI ====================
+    function updateSearchUI() {
+      const currentEngine = engines[currentIndex] || engines[0];
+      currentEngineDisplay.textContent = currentEngine.name;
+      engineDropdown.innerHTML = '';
+      engines.forEach((engine, idx) => {
+        const li = document.createElement('li');
+        li.textContent = engine.name;
+        li.dataset.index = idx;
+        if (idx === currentIndex) li.classList.add('active');
+        li.addEventListener('click', (e) => {
+          e.stopPropagation();
+          currentIndex = parseInt(li.dataset.index, 10);
+          saveCurrentIndex(currentIndex);
+          updateAllUI();
+          closeDropdown();
+        });
+        engineDropdown.appendChild(li);
+      });
+    }
+
+    function closeDropdown() {
+      engineDropdown.classList.remove('show');
+      engineSelector.classList.remove('active');
+    }
+
+    engineSelector.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = engineDropdown.classList.contains('show');
+      if (isOpen) { closeDropdown(); } else { engineDropdown.classList.add('show'); engineSelector.classList.add('active'); }
+    });
+    document.addEventListener('click', (event) => {
+      if (!engineSelector.contains(event.target)) closeDropdown();
+    });
+
+    // ==================== 搜索建议（多 API 支持，防竞态）====================
+    let suggestTimer;
+    let activeSuggestionIndex = -1;
+    let requestId = 0; // 递增 ID，用于防竞态
+    let currentJsonpScript = null; // 跟踪当前 JSONP 脚本
+    let currentSuggestionSource = loadSuggestionSource();
+    suggestionSourceSelect.value = currentSuggestionSource;
+
+    suggestionSourceSelect.addEventListener('change', function() {
+      currentSuggestionSource = this.value;
+      saveSuggestionSource(currentSuggestionSource);
+      const query = searchInput.value.trim();
+      if (query) requestSuggestions(query);
+      showToast(`已切换至 ${this.options[this.selectedIndex].text.split(' ')[0]}`);
+    });
+
+    function clearSuggestions() {
+      suggestionsBox.innerHTML = '';
+      suggestionsBox.classList.remove('show');
+      activeSuggestionIndex = -1;
+    }
+
+    // 移除旧的 JSONP 脚本标签
+    function removeJsonpScript() {
+      if (currentJsonpScript && currentJsonpScript.parentNode) {
+        currentJsonpScript.parentNode.removeChild(currentJsonpScript);
+        currentJsonpScript = null;
+      }
+    }
+
+    function getGoogleSuggest(query, callback) {
+      removeJsonpScript();
+      const script = document.createElement('script');
+      const callbackName = 'googleSuggestCallback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+      window[callbackName] = function(data) {
+        callback(data);
+        if (currentJsonpScript === script) {
+          document.body.removeChild(script);
+          currentJsonpScript = null;
+        }
+        delete window[callbackName];
+      };
+      script.src = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(query)}&jsonp=${callbackName}`;
+      script.onerror = () => {
+        if (currentJsonpScript === script) {
+          document.body.removeChild(script);
+          currentJsonpScript = null;
+        }
+        delete window[callbackName];
+        callback(null);
+      };
+      currentJsonpScript = script;
+      document.body.appendChild(script);
+    }
+
+    function getBingSuggest(query, callback) {
+      removeJsonpScript();
+      const script = document.createElement('script');
+      const callbackName = 'bingSuggestCallback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+      window[callbackName] = function(data) {
+        callback(data);
+        if (currentJsonpScript === script) {
+          document.body.removeChild(script);
+          currentJsonpScript = null;
+        }
+        delete window[callbackName];
+      };
+      script.src = `https://api.bing.com/osjson.aspx?query=${encodeURIComponent(query)}&JsonType=callback&JsonCallback=${callbackName}`;
+      script.onerror = () => {
+        if (currentJsonpScript === script) {
+          document.body.removeChild(script);
+          currentJsonpScript = null;
+        }
+        delete window[callbackName];
+        callback(null);
+      };
+      currentJsonpScript = script;
+      document.body.appendChild(script);
+    }
+
+    function getDuckDuckGoSuggest(query, callback) {
+      removeJsonpScript();
+      const script = document.createElement('script');
+      const callbackName = 'ddgSuggestCallback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+      window[callbackName] = function(data) {
+        callback(data);
+        if (currentJsonpScript === script) {
+          document.body.removeChild(script);
+          currentJsonpScript = null;
+        }
+        delete window[callbackName];
+      };
+      script.src = `https://duckduckgo.com/ac/?q=${encodeURIComponent(query)}&type=list&callback=${callbackName}`;
+      script.onerror = () => {
+        if (currentJsonpScript === script) {
+          document.body.removeChild(script);
+          currentJsonpScript = null;
+        }
+        delete window[callbackName];
+        callback(null);
+      };
+      currentJsonpScript = script;
+      document.body.appendChild(script);
+    }
+
+    // ==================== 修复 9：修正建议渲染的闪烁问题 ====================
+    function renderSuggestions(suggestions, query) {
+      // 先检查条件，再清空，避免闪一下空白
+      if (!suggestions || suggestions.length === 0 || searchInput.value.trim() !== query) {
+        clearSuggestions();
+        return;
+      }
+      suggestionsBox.innerHTML = '';
+      suggestions.forEach((item, index) => {
+        const li = document.createElement('li');
+        li.className = 'suggestion-item';
+        li.innerHTML = `<span class="suggestion-icon">🔍</span>${escapeHtml(item)}`;
+        li.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          searchInput.value = item;
+          clearSuggestions();
+          performSearch();
+        });
+        li.addEventListener('mouseenter', () => setActiveSuggestion(index));
+        suggestionsBox.appendChild(li);
+      });
+      suggestionsBox.classList.add('show');
+    }
+
+    function setActiveSuggestion(index) {
+      const items = suggestionsBox.querySelectorAll('.suggestion-item');
+      items.forEach(item => item.classList.remove('active-suggestion'));
+      if (index >= 0 && index < items.length) {
+        items[index].classList.add('active-suggestion');
+        activeSuggestionIndex = index;
+        const itemTop = items[index].offsetTop;
+        const itemBottom = itemTop + items[index].offsetHeight;
+        const boxScrollTop = suggestionsBox.scrollTop;
+        const boxHeight = suggestionsBox.clientHeight;
+        if (itemTop < boxScrollTop) {
+          suggestionsBox.scrollTop = itemTop;
+        } else if (itemBottom > boxScrollTop + boxHeight) {
+          suggestionsBox.scrollTop = itemBottom - boxHeight;
+        }
+      } else {
+        activeSuggestionIndex = -1;
+      }
+    }
+
+    function requestSuggestions(query) {
+      if (query === '') { clearSuggestions(); return; }
+
+      const thisRequestId = ++requestId;
+
+      const handler = function(data) {
+        // 只处理最新请求的响应
+        if (thisRequestId !== requestId) return;
+        if (!data) {
+          clearSuggestions();
+          return;
+        }
+        let suggestions = [];
+        if (data && data[1] && Array.isArray(data[1])) {
+          suggestions = data[1].filter(s => s && s !== query);
+        }
+        renderSuggestions(suggestions, query);
+      };
+
+      if (currentSuggestionSource === 'google') {
+        getGoogleSuggest(query, handler);
+      } else if (currentSuggestionSource === 'bing') {
+        getBingSuggest(query, handler);
+      } else if (currentSuggestionSource === 'duckduckgo') {
+        getDuckDuckGoSuggest(query, handler);
+      }
+    }
+
+    searchInput.addEventListener('input', () => {
+      clearTimeout(suggestTimer);
+      const query = searchInput.value.trim();
+      if (query === '') { clearSuggestions(); return; }
+      suggestTimer = setTimeout(() => requestSuggestions(query), 400);
+    });
+
+    searchInput.addEventListener('focus', () => {
+      const query = searchInput.value.trim();
+      if (query && !suggestionsBox.classList.contains('show')) {
+        requestSuggestions(query);
+      }
+    });
+
+    searchInput.addEventListener('keydown', (e) => {
+      const items = suggestionsBox.querySelectorAll('.suggestion-item');
+      if (!suggestionsBox.classList.contains('show') || items.length === 0) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          performSearch();
+        }
+        return;
+      }
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        activeSuggestionIndex = (activeSuggestionIndex + 1) % items.length;
+        setActiveSuggestion(activeSuggestionIndex);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        activeSuggestionIndex = (activeSuggestionIndex - 1 + items.length) % items.length;
+        setActiveSuggestion(activeSuggestionIndex);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (activeSuggestionIndex >= 0 && activeSuggestionIndex < items.length) {
+          searchInput.value = items[activeSuggestionIndex].textContent.replace('🔍', '').trim();
+        }
+        clearSuggestions();
+        performSearch();
+      } else if (e.key === 'Escape') {
+        clearSuggestions();
+        closeDropdown();
+      }
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!searchInput.contains(event.target) && !suggestionsBox.contains(event.target)) {
+        clearSuggestions();
+      }
+    });
+
+    function performSearch() {
+      const query = searchInput.value.trim();
+      if (!query) return;
+      const engine = engines[currentIndex];
+      if (!engine) return;
+      window.location.href = engine.url.replace('{keyword}', encodeURIComponent(query));
+    }
+
+    searchButton.addEventListener('click', performSearch);
+
+    function updateAllUI() {
+      renderEngineList();
+      updateSearchUI();
+    }
+
+    updateAllUI();
+    clearSuggestions();
+  })();
+</script>
+</body>
+</html>
