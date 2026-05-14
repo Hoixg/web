@@ -1,0 +1,2002 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>我的主页 v0.7</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: #1a1a2e;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      transition: background-image 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    body.default-bg {
+      background-image: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    }
+
+    body.no-scroll {
+      overflow: hidden;
+    }
+
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(10px);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 30px;
+      font-size: 0.9em;
+      opacity: 0;
+      transition: opacity 0.3s, transform 0.3s;
+      transform: translateY(-10px);
+      pointer-events: auto;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .main-container {
+      text-align: center;
+      width: 100%;
+      max-width: 700px;
+      padding: 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .top-buttons {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 1000;
+    }
+
+    .settings-btn,
+    .bookmarks-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: white;
+      font-size: 22px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .settings-btn:hover {
+      background: rgba(255, 255, 255, 0.25);
+      transform: rotate(30deg);
+    }
+
+    .bookmarks-btn:hover {
+      background: rgba(255, 255, 255, 0.25);
+      transform: scale(1.15);
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 999;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s, visibility 0.3s;
+      touch-action: none;
+    }
+
+    .overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .settings-panel {
+      position: fixed;
+      top: 0;
+      right: -400px;
+      width: 360px;
+      max-width: 85vw;
+      height: 100vh;
+      background: rgba(20, 20, 40, 0.95);
+      backdrop-filter: blur(15px);
+      border-left: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: -5px 0 25px rgba(0, 0, 0, 0.5);
+      z-index: 1001;
+      padding: 25px 20px;
+      color: #e0e0e0;
+      transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .settings-panel.open {
+      right: 0;
+    }
+
+    .settings-panel::-webkit-scrollbar {
+      width: 4px;
+    }
+    .settings-panel::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 2px;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      font-size: 1.4em;
+      font-weight: 300;
+      letter-spacing: 1px;
+      color: #ffffff;
+      flex-shrink: 0;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: #aaa;
+      font-size: 28px;
+      cursor: pointer;
+      line-height: 1;
+      transition: color 0.2s;
+    }
+
+    .close-btn:hover {
+      color: #fff;
+    }
+
+    .section {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      margin-bottom: 10px;
+      flex-shrink: 0;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.2s;
+    }
+
+    .section-header:hover {
+      color: #fff;
+    }
+
+    .section-header .section-title {
+      font-size: 0.9em;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #aaa;
+      transition: color 0.2s;
+      margin: 0;
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .section-header:hover .section-title {
+      color: #fff;
+    }
+
+    .section-arrow {
+      font-size: 14px;
+      transition: transform 0.3s ease;
+      color: #888;
+    }
+
+    .section.collapsed .section-arrow {
+      transform: rotate(-90deg);
+    }
+
+    .section-body {
+      max-height: 99999px;
+      overflow: hidden;
+      transition: max-height 0.4s ease, padding 0.3s ease, opacity 0.3s ease;
+      padding-bottom: 10px;
+    }
+
+    .section.collapsed .section-body {
+      max-height: 0;
+      padding-bottom: 0;
+      opacity: 0;
+    }
+
+    .engine-list {
+      list-style: none;
+      margin-bottom: 15px;
+    }
+
+    .engine-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      transition: background 0.2s;
+      gap: 8px;
+    }
+
+    .engine-item:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .engine-name {
+      font-weight: 500;
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .engine-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .edit-engine,
+    .delete-engine {
+      background: none;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      transition: color 0.2s, background 0.2s;
+    }
+
+    .edit-engine {
+      color: #5c9ce6;
+    }
+    .edit-engine:hover {
+      background: rgba(92, 156, 230, 0.2);
+    }
+    .delete-engine {
+      color: #ff6b6b;
+    }
+    .delete-engine:hover {
+      background: rgba(255, 107, 107, 0.2);
+    }
+
+    .add-engine-form {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .add-engine-form input,
+    .wallpaper-input input,
+    .suggestion-source select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 10px 12px;
+      border-radius: 6px;
+      color: white;
+      font-size: 0.95em;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    .add-engine-form input:focus,
+    .wallpaper-input input:focus,
+    .suggestion-source select:focus {
+      border-color: #5c9ce6;
+    }
+
+    .add-engine-form button,
+    .wallpaper-input button {
+      background: #5c9ce6;
+      border: none;
+      padding: 10px;
+      border-radius: 6px;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .add-engine-form button:hover,
+    .wallpaper-input button:hover {
+      background: #4a8ad4;
+    }
+
+    .wallpaper-input {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .wallpaper-input input {
+      flex: 1;
+    }
+
+    .preview-box {
+      width: 100%;
+      height: 120px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px dashed rgba(255, 255, 255, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+      overflow: hidden;
+      position: relative;
+      color: #aaa;
+      font-size: 0.9em;
+      transition: border 0.2s;
+    }
+
+    .preview-box.has-image {
+      border: 1px solid rgba(92, 156, 230, 0.5);
+    }
+
+    .preview-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .preview-status {
+      position: absolute;
+      bottom: 6px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.6);
+      color: #fff;
+      font-size: 0.75em;
+      padding: 2px 8px;
+      border-radius: 10px;
+      display: none;
+    }
+
+    .preview-box.has-image .preview-status {
+      display: block;
+    }
+
+    .reset-wallpaper {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 8px 14px;
+      border-radius: 6px;
+      color: #ccc;
+      cursor: pointer;
+      font-size: 0.9em;
+      transition: background 0.2s;
+      margin-bottom: 10px;
+    }
+
+    .reset-wallpaper:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .suggestion-source {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .suggestion-source label {
+      font-size: 0.9em;
+      color: #ccc;
+    }
+
+    .suggestion-source select {
+      flex: 1;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    .data-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .data-actions button {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 8px 10px;
+      border-radius: 6px;
+      color: #ccc;
+      cursor: pointer;
+      font-size: 0.85em;
+      transition: background 0.2s;
+    }
+
+    .data-actions button:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .version-info {
+      text-align: center;
+      font-size: 0.75em;
+      color: #666;
+      margin-top: 20px;
+      flex-shrink: 0;
+      padding-bottom: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 15px;
+      letter-spacing: 0.5px;
+    }
+
+    .search-section {
+      margin-bottom: 40px;
+    }
+
+    .search-wrapper {
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(12px);
+      border-radius: 50px;
+      padding: 0 18px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: box-shadow 0.3s;
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .search-wrapper:focus-within {
+      box-shadow: 0 0 20px rgba(92, 156, 230, 0.4);
+    }
+
+    .engine-selector {
+      position: relative;
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 30px;
+      padding: 8px 14px;
+      cursor: pointer;
+      user-select: none;
+      margin-right: 10px;
+      transition: background 0.2s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .engine-selector:hover {
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    .current-engine {
+      font-weight: 500;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .arrow-down {
+      font-size: 12px;
+      margin-left: 4px;
+      transition: transform 0.2s;
+    }
+
+    .engine-selector.active .arrow-down {
+      transform: rotate(180deg);
+    }
+
+    .engine-dropdown {
+      position: absolute;
+      top: calc(100% + 10px);
+      left: 0;
+      background: rgba(30, 30, 50, 0.95);
+      backdrop-filter: blur(15px);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+      list-style: none;
+      min-width: 160px;
+      z-index: 100;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-8px);
+      transition: all 0.2s ease;
+      overflow: hidden;
+    }
+
+    .engine-dropdown.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .engine-dropdown li {
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+      color: #ddd;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .engine-dropdown li:hover {
+      background: rgba(92, 156, 230, 0.3);
+      color: white;
+    }
+
+    .engine-dropdown li.active {
+      background: rgba(92, 156, 230, 0.4);
+      color: white;
+      font-weight: 600;
+    }
+
+    .search-input-area {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-input {
+      width: 100%;
+      background: none;
+      border: none;
+      padding: 16px 10px;
+      font-size: 1.1em;
+      color: white;
+      outline: none;
+      min-width: 0;
+    }
+
+    .search-input::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .search-button {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.4em;
+      cursor: pointer;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      border-radius: 50%;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+
+    .search-button:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .suggestions-box {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      right: 0;
+      max-height: 240px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      background: rgba(30, 30, 50, 0.95);
+      backdrop-filter: blur(15px);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+      list-style: none;
+      z-index: 101;
+      display: none;
+    }
+
+    .suggestions-box.show {
+      display: block;
+    }
+
+    .suggestion-item {
+      padding: 12px 16px;
+      cursor: pointer;
+      color: #ddd;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .suggestion-item:hover,
+    .suggestion-item.active-suggestion {
+      background: rgba(92, 156, 230, 0.3);
+      color: white;
+    }
+
+    .suggestion-icon {
+      opacity: 0.7;
+      font-size: 0.9em;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+    }
+
+    .toggle-row label {
+      font-size: 0.9em;
+      color: #ccc;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.3s;
+      flex-shrink: 0;
+    }
+
+    .toggle-switch.active {
+      background: #5c9ce6;
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.3s;
+    }
+
+    .toggle-switch.active::after {
+      transform: translateX(20px);
+    }
+
+    @media (max-width: 600px) {
+      .search-wrapper {
+        padding: 0 12px;
+      }
+      .engine-selector {
+        padding: 6px 10px;
+        font-size: 0.9em;
+      }
+    }
+  </style>
+</head>
+<body class="default-bg">
+  <div class="toast-container" id="toastContainer"></div>
+
+  <div class="top-buttons">
+    <div class="settings-btn" id="settingsBtn" title="设置">⚙️</div>
+    <div class="bookmarks-btn" id="bookmarksBtn" title="收藏管理">⭐</div>
+  </div>
+
+  <div class="overlay" id="overlay"></div>
+
+  <div class="settings-panel" id="settingsPanel">
+    <div class="panel-header">
+      <span>设置</span>
+      <button class="close-btn" id="closePanelBtn">✕</button>
+    </div>
+
+    <div class="section" id="sectionEngines">
+      <div class="section-header">
+        <span class="section-title">🔍 搜索引擎管理</span>
+        <span class="section-arrow">▼</span>
+      </div>
+      <div class="section-body">
+        <ul class="engine-list" id="engineList"></ul>
+        <div class="add-engine-form">
+          <input type="text" id="newEngineName" placeholder="引擎名称，如 Google">
+          <input type="text" id="newEngineUrl" placeholder="搜索URL，使用 {keyword} 占位">
+          <button id="addEngineBtn">添加引擎</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="sectionWallpaper">
+      <div class="section-header">
+        <span class="section-title">🎨 自定义壁纸</span>
+        <span class="section-arrow">▼</span>
+      </div>
+      <div class="section-body">
+        <div class="wallpaper-input">
+          <input type="text" id="wallpaperUrl" placeholder="输入图片直链，如 https://...">
+          <button id="saveWallpaperBtn">保存</button>
+        </div>
+        <div class="preview-box" id="previewBox">
+          <span id="previewPlaceholder">预览区域</span>
+          <span class="preview-status" id="previewStatus"></span>
+        </div>
+        <button class="reset-wallpaper" id="resetWallpaperBtn">恢复默认背景</button>
+      </div>
+    </div>
+
+    <div class="section" id="sectionSuggestions">
+      <div class="section-header">
+        <span class="section-title">💡 搜索建议</span>
+        <span class="section-arrow">▼</span>
+      </div>
+      <div class="section-body">
+        <div class="suggestion-source">
+          <label for="suggestionSourceSelect">来源：</label>
+          <select id="suggestionSourceSelect">
+            <option value="google">Google (需翻墙)</option>
+            <option value="bing">Bing (国内可用)</option>
+            <option value="duckduckgo">DuckDuckGo (备选)</option>
+          </select>
+        </div>
+        <div class="toggle-row">
+          <label for="autofocusToggle">页面加载时自动聚焦搜索框</label>
+          <div class="toggle-switch active" id="autofocusToggle" title="开启后页面加载自动弹出键盘（移动端）"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="sectionData">
+      <div class="section-header">
+        <span class="section-title">💾 数据管理</span>
+        <span class="section-arrow">▼</span>
+      </div>
+      <div class="section-body">
+        <div class="data-actions">
+          <button id="exportDataBtn">导出设置</button>
+          <button id="importDataBtn">导入设置</button>
+        </div>
+        <input type="file" id="importFileInput" accept=".json" style="display:none;">
+      </div>
+    </div>
+
+    <div class="version-info">
+      v0.7 · 更新于 2026-05-14
+    </div>
+
+    <div style="height: 20px; flex-shrink: 0;"></div>
+  </div>
+
+  <div class="main-container">
+    <div class="search-section">
+      <div class="search-wrapper">
+        <div class="engine-selector" id="engineSelector">
+          <span class="current-engine" id="currentEngineDisplay">Google</span>
+          <span class="arrow-down">▼</span>
+          <ul class="engine-dropdown" id="engineDropdown"></ul>
+        </div>
+        <div class="search-input-area">
+          <input type="text" class="search-input" id="searchInput" placeholder="输入关键词搜索..." autocomplete="off">
+          <ul class="suggestions-box" id="suggestionsBox"></ul>
+        </div>
+        <button class="search-button" id="searchButton">🔍</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function() {
+  // ==================== 默认数据 ====================
+  var DEFAULT_ENGINES = [
+    { name: 'Google', url: 'https://www.google.com/search?q={keyword}' },
+    { name: 'Bing', url: 'https://www.bing.com/search?q={keyword}' },
+    { name: '百度', url: 'https://www.baidu.com/s?wd={keyword}' },
+    { name: 'DuckDuckGo', url: 'https://duckduckgo.com/?q={keyword}' }
+  ];
+
+  var DEFAULT_BOOKMARKS = [
+    {
+      id: 'cat_demo_1',
+      name: '常用工具',
+      websites: [
+        { id: 'web_demo_1', name: 'GitHub', url: 'https://github.com' },
+        { id: 'web_demo_2', name: 'Google 翻译', url: 'https://translate.google.com' }
+      ]
+    },
+    {
+      id: 'cat_demo_2',
+      name: '技术社区',
+      websites: [
+        { id: 'web_demo_3', name: '掘金', url: 'https://juejin.cn' },
+        { id: 'web_demo_4', name: 'Stack Overflow', url: 'https://stackoverflow.com' }
+      ]
+    }
+  ];
+
+  // ==================== 存储操作 ====================
+  function loadEngines() {
+    try { var s = localStorage.getItem('searchEngines'); return s ? JSON.parse(s) : DEFAULT_ENGINES.slice(); }
+    catch(e) { return DEFAULT_ENGINES.slice(); }
+  }
+  function saveEngines(v) { localStorage.setItem('searchEngines', JSON.stringify(v)); }
+  function loadCurrentIndex() { return parseInt(localStorage.getItem('currentEngineIndex') || '0', 10); }
+  function saveCurrentIndex(v) { localStorage.setItem('currentEngineIndex', v.toString()); }
+  function loadWallpaper() { return localStorage.getItem('wallpaperUrl') || ''; }
+  function saveWallpaper(url) { if (url) localStorage.setItem('wallpaperUrl', url); else localStorage.removeItem('wallpaperUrl'); }
+  function loadSuggestionSource() { return localStorage.getItem('suggestionSource') || 'google'; }
+  function saveSuggestionSource(v) { localStorage.setItem('suggestionSource', v); }
+  function loadAutofocus() { return localStorage.getItem('autofocus') !== 'false'; }
+  function saveAutofocus(v) { localStorage.setItem('autofocus', v ? 'true' : 'false'); }
+  function loadBookmarks() {
+    try { var s = localStorage.getItem('bookmarks'); return s ? JSON.parse(s) : JSON.parse(JSON.stringify(DEFAULT_BOOKMARKS)); }
+    catch(e) { return JSON.parse(JSON.stringify(DEFAULT_BOOKMARKS)); }
+  }
+  function saveBookmarks(v) { localStorage.setItem('bookmarks', JSON.stringify(v)); }
+
+  var engines = loadEngines();
+  var currentIndex = loadCurrentIndex();
+  if (currentIndex >= engines.length || currentIndex < 0) { currentIndex = 0; saveCurrentIndex(0); }
+
+  // ==================== DOM 引用 ====================
+  var body = document.body;
+  var settingsBtn = document.getElementById('settingsBtn');
+  var bookmarksBtn = document.getElementById('bookmarksBtn');
+  var overlay = document.getElementById('overlay');
+  var settingsPanel = document.getElementById('settingsPanel');
+  var closePanelBtn = document.getElementById('closePanelBtn');
+  var engineListEl = document.getElementById('engineList');
+  var newEngineName = document.getElementById('newEngineName');
+  var newEngineUrl = document.getElementById('newEngineUrl');
+  var addEngineBtn = document.getElementById('addEngineBtn');
+  var wallpaperUrlInput = document.getElementById('wallpaperUrl');
+  var saveWallpaperBtn = document.getElementById('saveWallpaperBtn');
+  var resetWallpaperBtn = document.getElementById('resetWallpaperBtn');
+  var previewBox = document.getElementById('previewBox');
+  var engineSelector = document.getElementById('engineSelector');
+  var currentEngineDisplay = document.getElementById('currentEngineDisplay');
+  var engineDropdown = document.getElementById('engineDropdown');
+  var searchInput = document.getElementById('searchInput');
+  var searchButton = document.getElementById('searchButton');
+  var suggestionsBox = document.getElementById('suggestionsBox');
+  var exportDataBtn = document.getElementById('exportDataBtn');
+  var importDataBtn = document.getElementById('importDataBtn');
+  var importFileInput = document.getElementById('importFileInput');
+  var toastContainer = document.getElementById('toastContainer');
+  var suggestionSourceSelect = document.getElementById('suggestionSourceSelect');
+  var autofocusToggle = document.getElementById('autofocusToggle');
+
+  // ==================== 自动聚焦 ====================
+  var autofocusEnabled = loadAutofocus();
+  if (autofocusEnabled) {
+    searchInput.setAttribute('autofocus', 'autofocus');
+    autofocusToggle.classList.add('active');
+  } else {
+    searchInput.removeAttribute('autofocus');
+    autofocusToggle.classList.remove('active');
+  }
+
+  autofocusToggle.addEventListener('click', function() {
+    autofocusEnabled = !autofocusEnabled;
+    saveAutofocus(autofocusEnabled);
+    if (autofocusEnabled) {
+      this.classList.add('active');
+      searchInput.setAttribute('autofocus', 'autofocus');
+      searchInput.focus();
+    } else {
+      this.classList.remove('active');
+      searchInput.removeAttribute('autofocus');
+      searchInput.blur();
+    }
+    showToast(autofocusEnabled ? '自动聚焦已开启' : '自动聚焦已关闭');
+  });
+
+  // ==================== Toast ====================
+  var toastTimer = null;
+  function showToast(msg, dur) {
+    if (dur === undefined) dur = 2000;
+    if (toastTimer) clearTimeout(toastTimer);
+    var old = toastContainer.querySelector('.toast');
+    if (old) { old.classList.remove('show'); setTimeout(function() { if (old.parentNode) old.parentNode.removeChild(old); }, 300); }
+    var t = document.createElement('div');
+    t.className = 'toast';
+    t.textContent = msg;
+    toastContainer.appendChild(t);
+    void t.offsetWidth;
+    t.classList.add('show');
+    toastTimer = setTimeout(function() {
+      t.classList.remove('show');
+      setTimeout(function() { if (t.parentNode) t.parentNode.removeChild(t); }, 300);
+    }, dur);
+  }
+
+  // ==================== 壁纸 ====================
+  function escapeCssUrl(url) {
+    return encodeURI(url).replace(/'/g, '%27').replace(/"/g, '%22').replace(/\\/g, '%5C');
+  }
+  function applyWallpaper(url) {
+    if (url) {
+      body.style.backgroundImage = "url('" + escapeCssUrl(url) + "')";
+      body.classList.remove('default-bg');
+    } else {
+      body.style.backgroundImage = '';
+      body.classList.add('default-bg');
+    }
+  }
+
+  var savedWallpaper = loadWallpaper();
+  applyWallpaper(savedWallpaper);
+  if (savedWallpaper) wallpaperUrlInput.value = savedWallpaper;
+
+  function normalizeUrl(url) {
+    url = url.trim();
+    if (!url) return '';
+    try {
+      if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+      var p = new URL(url);
+      if (p.protocol !== 'http:' && p.protocol !== 'https:') return url;
+      return p.href;
+    } catch(e) { showToast('无效的 URL 格式'); return url; }
+  }
+
+  // ==================== 面板开关 ====================
+  function openPanel() {
+    settingsPanel.classList.add('open');
+    overlay.classList.add('active');
+    body.classList.add('no-scroll');
+  }
+  function closePanel() {
+    settingsPanel.classList.remove('open');
+    overlay.classList.remove('active');
+    body.classList.remove('no-scroll');
+  }
+  settingsBtn.addEventListener('click', openPanel);
+  closePanelBtn.addEventListener('click', closePanel);
+  overlay.addEventListener('click', closePanel);
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && settingsPanel.classList.contains('open')) {
+      closePanel();
+    }
+  });
+
+  // 设置面板滚动穿透防护
+  (function() {
+    var startY = 0;
+    settingsPanel.addEventListener('touchstart', function(e) {
+      startY = e.touches[0].clientY;
+    }, { passive: true });
+    settingsPanel.addEventListener('touchmove', function(e) {
+      var currentY = e.touches[0].clientY;
+      var scrollTop = settingsPanel.scrollTop;
+      var scrollHeight = settingsPanel.scrollHeight;
+      var clientHeight = settingsPanel.clientHeight;
+      var isAtTop = scrollTop === 0;
+      var isAtBottom = scrollTop + clientHeight >= scrollHeight - 1;
+      var directionDown = currentY > startY;
+      var directionUp = currentY < startY;
+      if ((isAtTop && directionDown) || (isAtBottom && directionUp)) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+  })();
+
+  // ==================== 折叠交互 ====================
+  function initCollapse() {
+    document.querySelectorAll('.section-header').forEach(function(header) {
+      header.addEventListener('click', function() {
+        var section = this.parentElement;
+        var bodyEl = section.querySelector('.section-body');
+        if (section.classList.contains('collapsed')) {
+          section.classList.remove('collapsed');
+          bodyEl.style.maxHeight = bodyEl.scrollHeight + 'px';
+          setTimeout(function() {
+            if (!section.classList.contains('collapsed')) {
+              bodyEl.style.maxHeight = 'none';
+            }
+          }, 450);
+        } else {
+          bodyEl.style.maxHeight = bodyEl.scrollHeight + 'px';
+          void bodyEl.offsetWidth;
+          section.classList.add('collapsed');
+          bodyEl.style.maxHeight = '0px';
+          setTimeout(function() {
+            if (section.classList.contains('collapsed')) {
+              bodyEl.style.maxHeight = '0px';
+            }
+          }, 450);
+        }
+      });
+    });
+  }
+  initCollapse();
+
+  // ==================== 搜索引擎列表渲染 ====================
+  function renderEngineList() {
+    engineListEl.innerHTML = '';
+    engines.forEach(function(engine, index) {
+      var li = document.createElement('li');
+      li.className = 'engine-item';
+      li.innerHTML =
+        '<span class="engine-name" title="' + escapeHtml(engine.name) + '">' + escapeHtml(engine.name) + '</span>' +
+        '<div class="engine-actions">' +
+        '<button class="edit-engine" data-index="' + index + '" title="编辑">✎</button>' +
+        '<button class="delete-engine" data-index="' + index + '"' + (engines.length <= 1 ? ' disabled style="opacity:0.3; cursor:not-allowed;"' : '') + ' title="删除">🗑️</button>' +
+        '</div>';
+      engineListEl.appendChild(li);
+    });
+
+    document.querySelectorAll('.edit-engine').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        editEngine(parseInt(this.dataset.index));
+      });
+    });
+
+    document.querySelectorAll('.delete-engine').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var idx = parseInt(this.dataset.index);
+        if (engines.length <= 1) return;
+        engines.splice(idx, 1);
+        saveEngines(engines);
+        if (currentIndex >= engines.length) {
+          currentIndex = engines.length - 1;
+        } else if (currentIndex > idx) {
+          currentIndex--;
+        }
+        saveCurrentIndex(currentIndex);
+        updateAllUI();
+        showToast('引擎已删除');
+      });
+    });
+  }
+
+  function editEngine(index) {
+    var engine = engines[index];
+    var nameInput = prompt('修改引擎名称：', engine.name);
+    if (nameInput === null) return;
+    var nameTrim = nameInput.trim();
+    if (!nameTrim) { showToast('名称不能为空'); return; }
+    var conflict = engines.find(function(e, i) { return i !== index && e.name.toLowerCase() === nameTrim.toLowerCase(); });
+    if (conflict) {
+      showToast('名称"' + nameTrim + '"与现有引擎冲突');
+      return;
+    }
+    var url = prompt('修改搜索 URL（使用 {keyword} 占位）：', engine.url);
+    if (url === null) return;
+    url = url.trim();
+    if (!url) { showToast('URL 不能为空'); return; }
+    url = url.replace('%s', '{keyword}');
+    if (!url.includes('{keyword}')) { showToast('URL 必须包含 {keyword} 占位符'); return; }
+    engines[index] = { name: nameTrim, url: url };
+    saveEngines(engines);
+    updateAllUI();
+    showToast('引擎已更新');
+  }
+
+  function escapeHtml(text) {
+    var map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+  }
+
+  // ==================== 添加引擎 ====================
+  function addEngine() {
+    var name = newEngineName.value.trim();
+    var url = newEngineUrl.value.trim();
+    if (!name || !url) { showToast('请填写引擎名称和搜索URL'); return; }
+    var conflict = engines.find(function(e) { return e.name.toLowerCase() === name.toLowerCase(); });
+    if (conflict) {
+      showToast('引擎名称"' + name + '"已存在');
+      return;
+    }
+    url = url.replace('%s', '{keyword}');
+    if (!url.includes('{keyword}')) { showToast('URL 必须包含 {keyword} 占位符'); return; }
+    engines.push({ name: name, url: url });
+    saveEngines(engines);
+    newEngineName.value = '';
+    newEngineUrl.value = '';
+    updateAllUI();
+    showToast('引擎已添加');
+  }
+  addEngineBtn.addEventListener('click', addEngine);
+  newEngineUrl.addEventListener('keydown', function(e) { if (e.key === 'Enter') addEngine(); });
+
+  // ==================== 壁纸保存 ====================
+  saveWallpaperBtn.addEventListener('click', function() {
+    var url = wallpaperUrlInput.value.trim();
+    if (!url) { showToast('请输入图片链接'); return; }
+    url = normalizeUrl(url);
+    if (!url) return;
+    wallpaperUrlInput.value = url;
+    var testImg = new Image();
+    testImg.crossOrigin = 'anonymous';
+    testImg.onload = function() {
+      if (testImg.naturalWidth === 0 && testImg.naturalHeight === 0) {
+        showToast('图片无法加载，请检查链接');
+        return;
+      }
+      saveWallpaper(url);
+      applyWallpaper(url);
+      showToast('壁纸已更新');
+    };
+    testImg.onerror = function() { showToast('图片无法加载，请检查链接'); };
+    testImg.src = url;
+  });
+
+  resetWallpaperBtn.addEventListener('click', function() {
+    saveWallpaper('');
+    applyWallpaper('');
+    wallpaperUrlInput.value = '';
+    updatePreview('');
+    showToast('已恢复默认背景');
+  });
+
+  var previewTimer;
+  function updatePreview(url) {
+    if (!url) {
+      previewBox.innerHTML = '<span id="previewPlaceholder">预览区域</span>';
+      previewBox.classList.remove('has-image');
+      return;
+    }
+    var img = new Image();
+    img.onload = function() {
+      previewBox.innerHTML = '';
+      var imgEl = document.createElement('img');
+      imgEl.src = url;
+      imgEl.alt = '预览';
+      previewBox.appendChild(imgEl);
+      var statusEl = document.createElement('span');
+      statusEl.className = 'preview-status';
+      statusEl.textContent = img.naturalWidth + '×' + img.naturalHeight;
+      previewBox.appendChild(statusEl);
+      previewBox.classList.add('has-image');
+    };
+    img.onerror = function() {
+      previewBox.innerHTML = '<span style="color:#ff6b6b;">图片加载失败</span>';
+      previewBox.classList.remove('has-image');
+    };
+    img.src = url;
+  }
+
+  wallpaperUrlInput.addEventListener('input', function() {
+    clearTimeout(previewTimer);
+    var url = wallpaperUrlInput.value.trim();
+    previewTimer = setTimeout(function() { updatePreview(url); }, 500);
+  });
+  if (savedWallpaper) updatePreview(savedWallpaper);
+
+  // ==================== 导出/导入 ====================
+  function exportData() {
+    var data = {
+      engines: engines,
+      currentIndex: currentIndex,
+      wallpaper: loadWallpaper(),
+      suggestionSource: loadSuggestionSource(),
+      autofocus: autofocusEnabled,
+      bookmarks: loadBookmarks()
+    };
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'homepage-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('设置已导出（含收藏）');
+  }
+
+  function importData(file) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        var data = JSON.parse(e.target.result);
+        if (data.engines && Array.isArray(data.engines) && data.engines.length > 0) {
+          var validEngines = data.engines.filter(function(engine) {
+            return engine.name && engine.url && engine.url.includes('{keyword}');
+          });
+          if (validEngines.length === 0) {
+            showToast('文件中没有有效的引擎（需包含 {keyword} 占位符）');
+            return;
+          }
+          engines = validEngines;
+          saveEngines(engines);
+          currentIndex = (data.currentIndex >= 0 && data.currentIndex < engines.length) ? data.currentIndex : 0;
+          saveCurrentIndex(currentIndex);
+          if (data.wallpaper !== undefined) {
+            saveWallpaper(data.wallpaper);
+            applyWallpaper(data.wallpaper);
+            wallpaperUrlInput.value = data.wallpaper;
+            updatePreview(data.wallpaper);
+          } else {
+            saveWallpaper('');
+            applyWallpaper('');
+            wallpaperUrlInput.value = '';
+            updatePreview('');
+          }
+          if (data.suggestionSource) {
+            saveSuggestionSource(data.suggestionSource);
+            suggestionSourceSelect.value = data.suggestionSource;
+            currentSuggestionSource = data.suggestionSource;
+            var query = searchInput.value.trim();
+            if (query) requestSuggestions(query);
+          }
+          if (data.autofocus !== undefined) {
+            autofocusEnabled = !!data.autofocus;
+            saveAutofocus(autofocusEnabled);
+            if (autofocusEnabled) {
+              autofocusToggle.classList.add('active');
+              searchInput.setAttribute('autofocus', 'autofocus');
+            } else {
+              autofocusToggle.classList.remove('active');
+              searchInput.removeAttribute('autofocus');
+            }
+          }
+          if (data.bookmarks !== undefined && Array.isArray(data.bookmarks)) {
+            var bm = data.bookmarks.filter(function(c) { return c.name && Array.isArray(c.websites); });
+            if (bm.length > 0) {
+              saveBookmarks(bm);
+            }
+          } else {
+            saveBookmarks(JSON.parse(JSON.stringify(DEFAULT_BOOKMARKS)));
+          }
+          updateAllUI();
+          showToast('设置已导入（含收藏，有效引擎 ' + validEngines.length + ' 个）');
+        } else {
+          showToast('无效的备份文件');
+        }
+      } catch (err) {
+        showToast('文件解析失败');
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  exportDataBtn.addEventListener('click', exportData);
+  importDataBtn.addEventListener('click', function() { importFileInput.click(); });
+  importFileInput.addEventListener('change', function(e) {
+    if (e.target.files[0]) { importData(e.target.files[0]); importFileInput.value = ''; }
+  });
+
+  // ==================== 搜索引擎切换 UI ====================
+  function updateSearchUI() {
+    var currentEngine = engines[currentIndex] || engines[0];
+    currentEngineDisplay.textContent = currentEngine.name;
+    engineDropdown.innerHTML = '';
+    engines.forEach(function(engine, idx) {
+      var li = document.createElement('li');
+      li.textContent = engine.name;
+      li.dataset.index = idx;
+      if (idx === currentIndex) li.classList.add('active');
+      li.addEventListener('click', function(e) {
+        e.stopPropagation();
+        currentIndex = parseInt(this.dataset.index, 10);
+        saveCurrentIndex(currentIndex);
+        updateAllUI();
+        closeDropdown();
+      });
+      engineDropdown.appendChild(li);
+    });
+  }
+
+  function closeDropdown() {
+    engineDropdown.classList.remove('show');
+    engineSelector.classList.remove('active');
+  }
+
+  engineSelector.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var isOpen = engineDropdown.classList.contains('show');
+    if (isOpen) { closeDropdown(); } else { engineDropdown.classList.add('show'); engineSelector.classList.add('active'); }
+  });
+  document.addEventListener('click', function(event) {
+    if (!engineSelector.contains(event.target)) closeDropdown();
+  });
+
+  // ==================== 搜索建议 ====================
+  var suggestTimer;
+  var activeSuggestionIndex = -1;
+  var requestId = 0;
+  var currentJsonpScript = null;
+  var currentSuggestionSource = loadSuggestionSource();
+  suggestionSourceSelect.value = currentSuggestionSource;
+
+  suggestionSourceSelect.addEventListener('change', function() {
+    currentSuggestionSource = this.value;
+    saveSuggestionSource(currentSuggestionSource);
+    var query = searchInput.value.trim();
+    if (query) requestSuggestions(query);
+    showToast('已切换至 ' + this.options[this.selectedIndex].text.split(' ')[0]);
+  });
+
+  function clearSuggestions() {
+    suggestionsBox.innerHTML = '';
+    suggestionsBox.classList.remove('show');
+    activeSuggestionIndex = -1;
+  }
+
+  function removeJsonpScript() {
+    if (currentJsonpScript && currentJsonpScript.parentNode) {
+      currentJsonpScript.parentNode.removeChild(currentJsonpScript);
+      currentJsonpScript = null;
+    }
+  }
+
+  function getGoogleSuggest(query, callback) {
+    removeJsonpScript();
+    var script = document.createElement('script');
+    var callbackName = 'googleSuggestCallback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+    window[callbackName] = function(data) {
+      callback(data);
+      if (currentJsonpScript === script) {
+        document.body.removeChild(script);
+        currentJsonpScript = null;
+      }
+      delete window[callbackName];
+    };
+    script.src = 'https://suggestqueries.google.com/complete/search?client=chrome&q=' + encodeURIComponent(query) + '&jsonp=' + callbackName;
+    script.onerror = function() {
+      if (currentJsonpScript === script) {
+        document.body.removeChild(script);
+        currentJsonpScript = null;
+      }
+      delete window[callbackName];
+      callback(null);
+    };
+    currentJsonpScript = script;
+    document.body.appendChild(script);
+  }
+
+  function getBingSuggest(query, callback) {
+    removeJsonpScript();
+    var script = document.createElement('script');
+    var callbackName = 'bingSuggestCallback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+    window[callbackName] = function(data) {
+      callback(data);
+      if (currentJsonpScript === script) {
+        document.body.removeChild(script);
+        currentJsonpScript = null;
+      }
+      delete window[callbackName];
+    };
+    script.src = 'https://api.bing.com/osjson.aspx?query=' + encodeURIComponent(query) + '&JsonType=callback&JsonCallback=' + callbackName;
+    script.onerror = function() {
+      if (currentJsonpScript === script) {
+        document.body.removeChild(script);
+        currentJsonpScript = null;
+      }
+      delete window[callbackName];
+      callback(null);
+    };
+    currentJsonpScript = script;
+    document.body.appendChild(script);
+  }
+
+  function getDuckDuckGoSuggest(query, callback) {
+    removeJsonpScript();
+    var script = document.createElement('script');
+    var callbackName = 'ddgSuggestCallback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+    window[callbackName] = function(data) {
+      callback(data);
+      if (currentJsonpScript === script) {
+        document.body.removeChild(script);
+        currentJsonpScript = null;
+      }
+      delete window[callbackName];
+    };
+    script.src = 'https://duckduckgo.com/ac/?q=' + encodeURIComponent(query) + '&type=list&callback=' + callbackName;
+    script.onerror = function() {
+      if (currentJsonpScript === script) {
+        document.body.removeChild(script);
+        currentJsonpScript = null;
+      }
+      delete window[callbackName];
+      callback(null);
+    };
+    currentJsonpScript = script;
+    document.body.appendChild(script);
+  }
+
+  function renderSuggestions(suggestions, query) {
+    if (!suggestions || suggestions.length === 0 || searchInput.value.trim() !== query) {
+      clearSuggestions();
+      return;
+    }
+    suggestionsBox.innerHTML = '';
+    suggestions.forEach(function(item, index) {
+      var li = document.createElement('li');
+      li.className = 'suggestion-item';
+      li.innerHTML = '<span class="suggestion-icon">🔍</span>' + escapeHtml(item);
+      li.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        searchInput.value = item;
+        clearSuggestions();
+        performSearch();
+      });
+      li.addEventListener('mouseenter', function() { setActiveSuggestion(index); });
+      suggestionsBox.appendChild(li);
+    });
+    suggestionsBox.classList.add('show');
+  }
+
+  function setActiveSuggestion(index) {
+    var items = suggestionsBox.querySelectorAll('.suggestion-item');
+    items.forEach(function(item) { item.classList.remove('active-suggestion'); });
+    if (index >= 0 && index < items.length) {
+      items[index].classList.add('active-suggestion');
+      activeSuggestionIndex = index;
+      var itemTop = items[index].offsetTop;
+      var itemBottom = itemTop + items[index].offsetHeight;
+      var boxScrollTop = suggestionsBox.scrollTop;
+      var boxHeight = suggestionsBox.clientHeight;
+      if (itemTop < boxScrollTop) {
+        suggestionsBox.scrollTop = itemTop;
+      } else if (itemBottom > boxScrollTop + boxHeight) {
+        suggestionsBox.scrollTop = itemBottom - boxHeight;
+      }
+    } else {
+      activeSuggestionIndex = -1;
+    }
+  }
+
+  function requestSuggestions(query) {
+    if (query === '') { clearSuggestions(); return; }
+    var thisRequestId = ++requestId;
+    var handler = function(data) {
+      if (thisRequestId !== requestId) return;
+      var suggestions = [];
+      if (data && data[1] && Array.isArray(data[1])) {
+        suggestions = data[1].filter(function(s) { return s && s !== query; });
+      }
+      renderSuggestions(suggestions, query);
+    };
+    if (currentSuggestionSource === 'google') {
+      getGoogleSuggest(query, handler);
+    } else if (currentSuggestionSource === 'bing') {
+      getBingSuggest(query, handler);
+    } else if (currentSuggestionSource === 'duckduckgo') {
+      getDuckDuckGoSuggest(query, handler);
+    }
+  }
+
+  searchInput.addEventListener('input', function() {
+    clearTimeout(suggestTimer);
+    var query = searchInput.value.trim();
+    if (query === '') { clearSuggestions(); return; }
+    suggestTimer = setTimeout(function() { requestSuggestions(query); }, 400);
+  });
+
+  searchInput.addEventListener('focus', function() {
+    var query = searchInput.value.trim();
+    if (query && !suggestionsBox.classList.contains('show')) {
+      requestSuggestions(query);
+    }
+  });
+
+  searchInput.addEventListener('keydown', function(e) {
+    var items = suggestionsBox.querySelectorAll('.suggestion-item');
+    if (!suggestionsBox.classList.contains('show') || items.length === 0) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        performSearch();
+      }
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeSuggestionIndex = (activeSuggestionIndex + 1) % items.length;
+      setActiveSuggestion(activeSuggestionIndex);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeSuggestionIndex = (activeSuggestionIndex - 1 + items.length) % items.length;
+      setActiveSuggestion(activeSuggestionIndex);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeSuggestionIndex >= 0 && activeSuggestionIndex < items.length) {
+        searchInput.value = items[activeSuggestionIndex].textContent.replace('🔍', '').trim();
+      }
+      clearSuggestions();
+      performSearch();
+    } else if (e.key === 'Escape') {
+      clearSuggestions();
+      closeDropdown();
+    }
+  });
+
+  document.addEventListener('click', function(event) {
+    if (!searchInput.contains(event.target) && !suggestionsBox.contains(event.target)) {
+      clearSuggestions();
+    }
+  });
+
+  function performSearch() {
+    var query = searchInput.value.trim();
+    if (!query) return;
+    var engine = engines[currentIndex];
+    if (!engine) return;
+    window.location.href = engine.url.replace('{keyword}', encodeURIComponent(query));
+  }
+
+  searchButton.addEventListener('click', performSearch);
+
+  // ==================== 收藏：打开新标签页 ====================
+  var bookmarksWindow = null;
+
+  function openBookmarksPage() {
+    // 如果已有窗口打开且未关闭，聚焦它
+    if (bookmarksWindow && !bookmarksWindow.closed) {
+      bookmarksWindow.focus();
+      return;
+    }
+
+    // 使用 Blob URL 构建独立书签管理页面
+    var pageHtml = buildBookmarksPageHtml();
+    var blob = new Blob([pageHtml], { type: 'text/html;charset=utf-8' });
+    var blobUrl = URL.createObjectURL(blob);
+
+    bookmarksWindow = window.open(blobUrl, '_blank');
+
+    // 窗口关闭后释放 Blob URL
+    var checkClosed = setInterval(function() {
+      if (bookmarksWindow && bookmarksWindow.closed) {
+        clearInterval(checkClosed);
+        URL.revokeObjectURL(blobUrl);
+        bookmarksWindow = null;
+      }
+    }, 500);
+
+    // 安全兜底：30 秒后释放
+    setTimeout(function() {
+      clearInterval(checkClosed);
+      if (bookmarksWindow && !bookmarksWindow.closed) {
+        // 窗口仍开着，暂不释放
+      } else {
+        URL.revokeObjectURL(blobUrl);
+        bookmarksWindow = null;
+      }
+    }, 30000);
+  }
+
+  function buildBookmarksPageHtml() {
+    // 使用模板字符串构建完整页面，根除转义错误
+    return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⭐ 我的收藏</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Segoe UI',Roboto,'Helvetica Neue',sans-serif;background:#1a1a2e;color:#e0e0e0;min-height:100vh;padding:20px;}
+  .top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;padding-bottom:15px;border-bottom:1px solid rgba(255,255,255,0.1);}
+  .top-bar h1{font-size:1.6em;font-weight:300;letter-spacing:1px;color:#fff;}
+  .close-page-btn{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#ccc;padding:8px 16px;border-radius:20px;cursor:pointer;font-size:0.9em;transition:all 0.2s;}
+  .close-page-btn:hover{background:rgba(255,107,107,0.3);color:#fff;border-color:#ff6b6b;}
+  .toast-container{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:9999;pointer-events:none;}
+  .toast{background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);color:#fff;padding:10px 20px;border-radius:30px;font-size:0.9em;opacity:0;transition:opacity 0.3s,transform 0.3s;transform:translateY(-10px);pointer-events:auto;white-space:nowrap;}
+  .toast.show{opacity:1;transform:translateY(0);}
+  .cat-card{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;margin-bottom:16px;overflow:hidden;transition:border-color 0.2s;}
+  .cat-card:hover{border-color:rgba(255,255,255,0.2);}
+  .cat-header{display:flex;align-items:center;padding:14px 18px;cursor:pointer;user-select:none;gap:10px;transition:background 0.2s;}
+  .cat-header:hover{background:rgba(255,255,255,0.04);}
+  .cat-header .cat-name{flex:1;font-weight:500;font-size:1.05em;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+  .cat-header .cat-count{color:#888;font-size:0.8em;flex-shrink:0;}
+  .cat-header .cat-arrow{font-size:14px;color:#888;transition:transform 0.3s;flex-shrink:0;}
+  .cat-card.collapsed .cat-arrow{transform:rotate(-90deg);}
+  .cat-actions{display:flex;gap:4px;flex-shrink:0;}
+  .cat-actions button{background:none;border:none;font-size:15px;cursor:pointer;padding:3px 6px;border-radius:4px;transition:all 0.2s;}
+  .icon-edit{color:#5c9ce6;} .icon-edit:hover{background:rgba(92,156,230,0.2);}
+  .icon-delete{color:#ff6b6b;} .icon-delete:hover{background:rgba(255,107,107,0.2);}
+  .cat-body{max-height:3000px;overflow:hidden;transition:max-height 0.4s ease,opacity 0.3s;padding:0 18px 14px;}
+  .cat-card.collapsed .cat-body{max-height:0;padding-top:0;padding-bottom:0;opacity:0;}
+  .bm-list{list-style:none;margin-bottom:10px;}
+  .bm-item{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.04);padding:10px 12px;border-radius:8px;margin-bottom:6px;transition:background 0.2s;}
+  .bm-item:hover{background:rgba(255,255,255,0.08);}
+  .bm-favicon{width:20px;height:20px;border-radius:4px;flex-shrink:0;object-fit:contain;}
+  .bm-favicon-placeholder{width:20px;height:20px;border-radius:4px;flex-shrink:0;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-size:12px;color:#888;}
+  .bm-link{flex:1;color:#c0c0c0;text-decoration:none;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;transition:color 0.2s;}
+  .bm-link:hover{color:#5c9ce6;}
+  .bm-item-actions{display:flex;gap:4px;flex-shrink:0;}
+  .bm-item-actions button{background:none;border:none;font-size:14px;cursor:pointer;padding:3px 5px;border-radius:4px;transition:all 0.2s;}
+  .add-bm-form{display:flex;gap:8px;flex-wrap:wrap;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.1);}
+  .add-bm-form input{flex:1;min-width:120px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);padding:8px 10px;border-radius:6px;color:#fff;font-size:0.9em;outline:none;transition:border 0.2s;}
+  .add-bm-form input:focus{border-color:#5c9ce6;}
+  .add-bm-form button{background:#5c9ce6;border:none;padding:8px 14px;border-radius:6px;color:#fff;font-weight:600;cursor:pointer;transition:background 0.2s;font-size:0.9em;white-space:nowrap;}
+  .add-bm-form button:hover{background:#4a8ad4;}
+  .add-cat-btn{display:block;width:100%;background:rgba(255,255,255,0.06);border:1px dashed rgba(255,255,255,0.2);padding:12px;border-radius:12px;color:#aaa;cursor:pointer;font-size:0.95em;transition:all 0.2s;margin-top:5px;}
+  .add-cat-btn:hover{background:rgba(255,255,255,0.12);color:#fff;border-color:rgba(255,255,255,0.35);}
+  .empty-state{text-align:center;color:#666;padding:50px 20px;}
+  .empty-state .empty-icon{font-size:3.5em;display:block;margin-bottom:15px;opacity:0.5;}
+</style>
+</head>
+<body>
+<div class="toast-container" id="toastContainer"></div>
+<div class="top-bar">
+  <h1>⭐ 我的收藏</h1>
+  <button class="close-page-btn" id="closePageBtn" title="关闭页面（快捷键 Alt+W）">✕ 关闭</button>
+</div>
+<div id="bookmarksContainer"></div>
+<button class="add-cat-btn" id="addCategoryBtn">+ 添加分区</button>
+
+<script>
+(function(){
+  function escapeHtml(text){
+    var map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'};
+    return String(text).replace(/[&<>"']/g, function(m){ return map[m]; });
+  }
+  function generateId(){
+    return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2,6);
+  }
+  function normalizeUrl(url){
+    url = url.trim();
+    if (!url) return '';
+    try {
+      if (!/^https?:\\/\\//i.test(url)) url = 'https://' + url;
+      var p = new URL(url);
+      if (p.protocol !== 'http:' && p.protocol !== 'https:') return url;
+      return p.href;
+    } catch(e) { showToast('无效的 URL 格式'); return url; }
+  }
+  function getFaviconUrl(url){
+    try { return 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(new URL(url).hostname) + '&sz=32'; }
+    catch(e) { return ''; }
+  }
+
+  var toastTimer = null;
+  function showToast(msg, dur){
+    if (dur === undefined) dur = 2000;
+    if (toastTimer) clearTimeout(toastTimer);
+    var container = document.getElementById('toastContainer');
+    var old = container.querySelector('.toast');
+    if (old) { old.classList.remove('show'); setTimeout(function(){ if(old.parentNode) old.parentNode.removeChild(old); }, 300); }
+    var t = document.createElement('div');
+    t.className = 'toast';
+    t.textContent = msg;
+    container.appendChild(t);
+    void t.offsetWidth;
+    t.classList.add('show');
+    toastTimer = setTimeout(function(){
+      t.classList.remove('show');
+      setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); }, 300);
+    }, dur);
+  }
+
+  var DEFAULT_BOOKMARKS = ${JSON.stringify(DEFAULT_BOOKMARKS)};
+
+  function loadBookmarks(){
+    try {
+      var s = localStorage.getItem('bookmarks');
+      return s ? JSON.parse(s) : JSON.parse(JSON.stringify(DEFAULT_BOOKMARKS));
+    } catch(e) {
+      return JSON.parse(JSON.stringify(DEFAULT_BOOKMARKS));
+    }
+  }
+  function saveBookmarks(v){
+    localStorage.setItem('bookmarks', JSON.stringify(v));
+  }
+
+  var bookmarks = loadBookmarks();
+  var container = document.getElementById('bookmarksContainer');
+
+  function renderAll(){
+    container.innerHTML = '';
+    if (bookmarks.length === 0){
+      container.innerHTML = '<div class="empty-state"><span class="empty-icon">📂</span>还没有收藏<br>点击下方「+ 添加分区」开始</div>';
+      return;
+    }
+    bookmarks.forEach(function(cat, catIdx){
+      var card = document.createElement('div');
+      card.className = 'cat-card';
+
+      // 头部
+      var hdr = document.createElement('div');
+      hdr.className = 'cat-header';
+      hdr.innerHTML =
+        '<span class="cat-name">📁 ' + escapeHtml(cat.name) + '</span>' +
+        '<span class="cat-count">' + cat.websites.length + ' 个</span>' +
+        '<div class="cat-actions">' +
+        '<button class="icon-edit" title="重命名">✎</button>' +
+        '<button class="icon-delete" title="删除">🗑️</button>' +
+        '</div>' +
+        '<span class="cat-arrow">▼</span>';
+
+      // 身体
+      var body = document.createElement('div');
+      body.className = 'cat-body';
+
+      var list = document.createElement('div');
+      list.className = 'bm-list';
+
+      cat.websites.forEach(function(w, wIdx){
+        var item = document.createElement('div');
+        item.className = 'bm-item';
+
+        var fav = getFaviconUrl(w.url);
+        var img = document.createElement('img');
+        img.className = 'bm-favicon';
+        if (fav) { img.src = fav; } else { img.style.display = 'none'; }
+        img.alt = '';
+        img.loading = 'lazy';
+        img.onerror = function(){
+          this.style.display = 'none';
+          var ph = this.nextElementSibling;
+          if (ph && ph.classList.contains('bm-favicon-placeholder')) ph.style.display = 'flex';
+        };
+        img.onload = function(){
+          if (this.naturalWidth > 0){
+            this.style.display = '';
+            var ph = this.nextElementSibling;
+            if (ph && ph.classList.contains('bm-favicon-placeholder')) ph.style.display = 'none';
+          }
+        };
+        item.appendChild(img);
+
+        var ph = document.createElement('span');
+        ph.className = 'bm-favicon-placeholder';
+        ph.textContent = '🌐';
+        if (fav) ph.style.display = 'none';
+        item.appendChild(ph);
+
+        var a = document.createElement('a');
+        a.href = w.url;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.className = 'bm-link';
+        a.title = w.name + ' — ' + w.url;
+        a.textContent = w.name;
+        a.addEventListener('click', function(e){ e.stopPropagation(); });
+        item.appendChild(a);
+
+        var acts = document.createElement('div');
+        acts.className = 'bm-item-actions';
+
+        var eb = document.createElement('button');
+        eb.className = 'icon-edit';
+        eb.title = '编辑';
+        eb.textContent = '✎';
+        eb.addEventListener('click', function(e){
+          e.stopPropagation();
+          e.preventDefault();
+          editWeb(catIdx, wIdx);
+        });
+        acts.appendChild(eb);
+
+        var db = document.createElement('button');
+        db.className = 'icon-delete';
+        db.title = '删除';
+        db.textContent = '🗑️';
+        db.addEventListener('click', function(e){
+          e.stopPropagation();
+          e.preventDefault();
+          delWeb(catIdx, wIdx);
+        });
+        acts.appendChild(db);
+
+        item.appendChild(acts);
+        list.appendChild(item);
+      });
+
+      body.appendChild(list);
+
+      // 添加网站表单
+      var form = document.createElement('div');
+      form.className = 'add-bm-form';
+
+      var ni = document.createElement('input');
+      ni.type = 'text';
+      ni.placeholder = '网站名称';
+      ni.autocomplete = 'off';
+
+      var ui = document.createElement('input');
+      ui.type = 'text';
+      ui.placeholder = '网址，如 https://...';
+      ui.autocomplete = 'off';
+
+      var ab = document.createElement('button');
+      ab.textContent = '添加';
+      ab.addEventListener('click', function(e){
+        e.stopPropagation();
+        addWeb(catIdx, ni, ui);
+      });
+      ui.addEventListener('keydown', function(e){
+        if (e.key === 'Enter'){
+          e.stopPropagation();
+          addWeb(catIdx, ni, ui);
+        }
+      });
+
+      form.appendChild(ni);
+      form.appendChild(ui);
+      form.appendChild(ab);
+      body.appendChild(form);
+
+      card.appendChild(hdr);
+      card.appendChild(body);
+      container.appendChild(card);
+
+      // 事件绑定
+      hdr.addEventListener('click', function(e){
+        // 如果点击的是按钮，不做折叠
+        if (e.target.closest('button')) return;
+        card.classList.toggle('collapsed');
+      });
+
+      hdr.querySelector('.icon-edit').addEventListener('click', function(e){
+        e.stopPropagation();
+        renameCat(catIdx);
+      });
+      hdr.querySelector('.icon-delete').addEventListener('click', function(e){
+        e.stopPropagation();
+        delCat(catIdx);
+      });
+    });
+  }
+
+  function addWeb(catIdx, ni, ui){
+    var n = ni.value.trim();
+    var u = ui.value.trim();
+    if (!n) { showToast('请输入网站名称'); ni.focus(); return; }
+    if (!u) { showToast('请输入网址'); ui.focus(); return; }
+    u = normalizeUrl(u);
+    if (!u) { ui.focus(); return; }
+    var cat = bookmarks[catIdx];
+    if (!cat) return;
+    cat.websites.push({ id: generateId(), name: n, url: u });
+    saveBookmarks(bookmarks);
+    ni.value = '';
+    ui.value = '';
+    renderAll();
+    showToast('"' + n + '" 已添加到「' + cat.name + '」');
+  }
+
+  function editWeb(catIdx, wIdx){
+    var w = bookmarks[catIdx].websites[wIdx];
+    if (!w) return;
+    var n = prompt('修改网站名称：', w.name);
+    if (n === null) return;
+    n = n.trim();
+    if (!n) { showToast('名称不能为空'); return; }
+    var u = prompt('修改网址：', w.url);
+    if (u === null) return;
+    u = u.trim();
+    if (!u) { showToast('网址不能为空'); return; }
+    u = normalizeUrl(u);
+    if (!u) return;
+    w.name = n;
+    w.url = u;
+    saveBookmarks(bookmarks);
+    renderAll();
+    showToast('网站已更新');
+  }
+
+  function delWeb(catIdx, wIdx){
+    var cat = bookmarks[catIdx];
+    var w = cat.websites[wIdx];
+    if (!w) return;
+    cat.websites.splice(wIdx, 1);
+    saveBookmarks(bookmarks);
+    renderAll();
+    showToast('"' + w.name + '" 已删除');
+  }
+
+  function addCategory(){
+    var n = prompt('请输入分区名称：');
+    if (n === null) return;
+    n = n.trim();
+    if (!n) { showToast('分区名称不能为空'); return; }
+    if (bookmarks.some(function(c){ return c.name.toLowerCase() === n.toLowerCase(); })){
+      showToast('分区「' + n + '」已存在');
+      return;
+    }
+    bookmarks.push({ id: generateId(), name: n, websites: [] });
+    saveBookmarks(bookmarks);
+    renderAll();
+    showToast('分区「' + n + '」已创建');
+  }
+
+  function renameCat(idx){
+    var cat = bookmarks[idx];
+    if (!cat) return;
+    var n = prompt('修改分区名称：', cat.name);
+    if (n === null) return;
+    n = n.trim();
+    if (!n) { showToast('分区名称不能为空'); return; }
+    if (bookmarks.some(function(c, i){ return i !== idx && c.name.toLowerCase() === n.toLowerCase(); })){
+      showToast('分区「' + n + '」已存在');
+      return;
+    }
+    cat.name = n;
+    saveBookmarks(bookmarks);
+    renderAll();
+    showToast('分区已重命名');
+  }
+
+  function delCat(idx){
+    var cat = bookmarks[idx];
+    if (!cat) return;
+    var msg = '确定删除分区「' + cat.name + '」？';
+    if (cat.websites.length > 0){
+      msg += '\\n分区内的 ' + cat.websites.length + ' 个网站将一并删除。';
+    }
+    if (!confirm(msg)) return;
+    bookmarks.splice(idx, 1);
+    saveBookmarks(bookmarks);
+    renderAll();
+    showToast('分区「' + cat.name + '」已删除');
+  }
+
+  document.getElementById('addCategoryBtn').addEventListener('click', addCategory);
+  document.getElementById('closePageBtn').addEventListener('click', function(){
+    window.close();
+    // 如果 window.close() 无效，提示手动关闭
+    setTimeout(function(){
+      showToast('请手动关闭此标签页 (Ctrl+W / Cmd+W)', 4000);
+    }, 300);
+  });
+
+  // 快捷键支持
+  document.addEventListener('keydown', function(e){
+    if (e.altKey && e.key === 'w'){
+      window.close();
+    }
+  });
+
+  renderAll();
+})();
+<\/script>
+</body>
+</html>`;
+  }
+
+  bookmarksBtn.addEventListener('click', openBookmarksPage);
+
+  // ==================== 全局刷新 ====================
+  function updateAllUI() {
+    renderEngineList();
+    updateSearchUI();
+  }
+
+  updateAllUI();
+  clearSuggestions();
+})();
+</script>
+</body>
+</html>
