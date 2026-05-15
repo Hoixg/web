@@ -1,0 +1,1553 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>我的主页 v0.75</title>
+  <style>
+    /* ========== CSS 变量 ========== */
+    :root {
+      --bg-primary: #1a1a2e;
+      --bg-panel: rgba(20, 20, 40, 0.95);
+      --bg-card: rgba(255, 255, 255, 0.05);
+      --bg-card-hover: rgba(255, 255, 255, 0.1);
+      --bg-input: rgba(255, 255, 255, 0.1);
+      --bg-glass: rgba(255, 255, 255, 0.12);
+      --bg-glass-hover: rgba(255, 255, 255, 0.18);
+      --bg-overlay: rgba(0, 0, 0, 0.4);
+      --bg-toast: rgba(0, 0, 0, 0.85);
+
+      --text-primary: #ffffff;
+      --text-secondary: #e0e0e0;
+      --text-tertiary: #ccc;
+      --text-muted: #aaa;
+      --text-dim: #888;
+      --text-faint: #666;
+
+      --accent: #5c9ce6;
+      --accent-hover: #4a8ad4;
+      --accent-glow: rgba(92, 156, 230, 0.4);
+      --accent-bg: rgba(92, 156, 230, 0.2);
+      --danger: #ff6b6b;
+      --danger-hover: rgba(255, 107, 107, 0.3);
+
+      --border-light: rgba(255, 255, 255, 0.08);
+      --border-medium: rgba(255, 255, 255, 0.15);
+      --border-input: rgba(255, 255, 255, 0.2);
+
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 30px;
+      --radius-full: 50px;
+
+      --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.6);
+      --shadow-panel: -5px 0 25px rgba(0, 0, 0, 0.5);
+
+      --transition-fast: 0.2s;
+      --transition-normal: 0.3s;
+      --transition-slow: 0.4s;
+      --transition-panel: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+
+      --font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-family);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: var(--bg-primary);
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      transition: background-image var(--transition-normal) ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    body.default-bg {
+      background-image: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    }
+
+    body.no-scroll { overflow: hidden; }
+
+    .main-container {
+      text-align: center;
+      width: 100%;
+      max-width: 700px;
+      padding: 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Toast */
+    .toast-container {
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+      z-index: 9999; display: flex; flex-direction: column; align-items: center;
+      gap: 8px; pointer-events: none;
+    }
+    .toast {
+      background: var(--bg-toast); backdrop-filter: blur(10px); color: var(--text-primary);
+      padding: 10px 20px; border-radius: var(--radius-xl); font-size: 0.9em;
+      opacity: 0; transform: translateY(-10px);
+      transition: opacity var(--transition-normal), transform var(--transition-normal);
+      pointer-events: auto; white-space: nowrap;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    /* 右上按钮 */
+    .top-buttons {
+      position: fixed; top: 20px; right: 20px; display: flex;
+      flex-direction: column; gap: 10px; z-index: 1000;
+    }
+    .settings-btn, .bookmarks-btn {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--bg-glass); backdrop-filter: blur(10px);
+      border: 1px solid var(--border-input); color: var(--text-primary);
+      font-size: 22px; cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+      transition: background var(--transition-fast), transform var(--transition-fast);
+    }
+    .settings-btn:hover { background: rgba(255,255,255,0.25); transform: rotate(30deg); }
+    .bookmarks-btn:hover { background: rgba(255,255,255,0.25); transform: scale(1.15); }
+
+    /* 遮罩 */
+    .overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--bg-overlay); z-index: 999;
+      opacity: 0; visibility: hidden;
+      transition: opacity var(--transition-normal), visibility var(--transition-normal);
+      touch-action: none;
+    }
+    .overlay.active { opacity: 1; visibility: visible; }
+
+    /* 设置面板 */
+    .settings-panel {
+      position: fixed; top: 0; right: -400px; width: 360px; max-width: 85vw;
+      height: 100vh; background: var(--bg-panel); backdrop-filter: blur(15px);
+      border-left: 1px solid var(--border-light); box-shadow: var(--shadow-panel);
+      z-index: 1001; padding: 25px 20px; color: var(--text-secondary);
+      transition: right var(--transition-panel);
+      overflow-y: auto; -webkit-overflow-scrolling: touch;
+      display: flex; flex-direction: column;
+    }
+    .settings-panel.open { right: 0; }
+    .settings-panel::-webkit-scrollbar { width: 4px; }
+    .settings-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 2px; }
+
+    .panel-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 30px; font-size: 1.4em; font-weight: 300;
+      letter-spacing: 1px; color: var(--text-primary); flex-shrink: 0;
+    }
+    .close-btn {
+      background: none; border: none; color: var(--text-muted);
+      font-size: 28px; cursor: pointer; line-height: 1;
+      transition: color var(--transition-fast);
+    }
+    .close-btn:hover { color: var(--text-primary); }
+
+    /* 折叠分区 */
+    .section { border-bottom: 1px solid var(--border-light); margin-bottom: 10px; flex-shrink: 0; }
+    .section-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 0; cursor: pointer; user-select: none;
+      transition: color var(--transition-fast);
+    }
+    .section-header:hover { color: var(--text-primary); }
+    .section-header .section-title {
+      font-size: 0.9em; text-transform: uppercase; letter-spacing: 2px;
+      color: var(--text-muted); transition: color var(--transition-fast);
+      margin: 0; border-bottom: none; padding-bottom: 0;
+    }
+    .section-header:hover .section-title { color: var(--text-primary); }
+    .section-arrow { font-size: 14px; transition: transform var(--transition-normal) ease; color: var(--text-dim); }
+    .section.collapsed .section-arrow { transform: rotate(-90deg); }
+    .section-body {
+      max-height: 99999px; overflow: hidden;
+      transition: max-height var(--transition-slow) ease, padding var(--transition-normal) ease, opacity var(--transition-normal) ease;
+      padding-bottom: 10px;
+    }
+    .section.collapsed .section-body { max-height: 0; padding-bottom: 0; opacity: 0; }
+
+    /* 表单 */
+    .engine-item, .form-row {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--bg-card); padding: 10px 12px; border-radius: var(--radius-md);
+      margin-bottom: 8px; transition: background var(--transition-fast); gap: 8px;
+    }
+    .engine-item:hover { background: var(--bg-card-hover); }
+    .engine-name { font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .engine-actions { display: flex; gap: 6px; align-items: center; }
+    .edit-engine, .delete-engine {
+      background: none; border: none; font-size: 16px; cursor: pointer;
+      padding: 4px; border-radius: 4px;
+      transition: color var(--transition-fast), background var(--transition-fast);
+    }
+    .edit-engine { color: var(--accent); }
+    .edit-engine:hover { background: var(--accent-bg); }
+    .delete-engine { color: var(--danger); }
+    .delete-engine:hover { background: var(--danger-hover); }
+
+    .add-engine-form { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+    .add-engine-form input, .wallpaper-input-row input, .suggestion-source select {
+      background: var(--bg-input); border: 1px solid var(--border-input);
+      padding: 10px 12px; border-radius: var(--radius-sm); color: var(--text-primary);
+      font-size: 0.95em; outline: none; transition: border var(--transition-fast);
+    }
+    .add-engine-form input:focus, .wallpaper-input-row input:focus, .suggestion-source select:focus {
+      border-color: var(--accent);
+    }
+    .btn-primary, .add-engine-form button, .wallpaper-input-row button {
+      background: var(--accent); border: none; padding: 10px;
+      border-radius: var(--radius-sm); color: var(--text-primary);
+      font-weight: 600; cursor: pointer; transition: background var(--transition-fast);
+    }
+    .btn-primary:hover, .add-engine-form button:hover, .wallpaper-input-row button:hover { background: var(--accent-hover); }
+
+    /* 壁纸 */
+    .wallpaper-mode-selector { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 15px; }
+    .mode-card {
+      background: var(--bg-card); border: 2px solid rgba(255,255,255,0.12);
+      border-radius: 10px; padding: 12px 6px; text-align: center;
+      cursor: pointer; transition: all 0.25s ease; user-select: none; position: relative;
+    }
+    .mode-card:hover { background: var(--bg-card-hover); border-color: rgba(255,255,255,0.28); transform: translateY(-1px); }
+    .mode-card.selected { background: var(--accent-bg); border-color: var(--accent); box-shadow: 0 0 14px var(--accent-glow); }
+    .mode-card .mode-icon { font-size: 1.5em; display: block; margin-bottom: 3px; }
+    .mode-card .mode-label { font-size: 0.78em; color: #bbb; letter-spacing: 0.5px; }
+    .mode-card.selected .mode-label { color: var(--text-primary); font-weight: 500; }
+    .mode-content { animation: modeFadeIn 0.25s ease; }
+    @keyframes modeFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    .wallpaper-input-row { display: flex; gap: 8px; margin-bottom: 10px; }
+    .wallpaper-input-row input { flex: 1; }
+    .preview-box {
+      width: 100%; height: 120px; border-radius: var(--radius-md);
+      background: rgba(0,0,0,0.3); border: 1px dashed rgba(255,255,255,0.25);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 12px; overflow: hidden; position: relative;
+      color: var(--text-muted); font-size: 0.9em; transition: border var(--transition-fast);
+    }
+    .preview-box.has-image { border: 1px solid rgba(92,156,230,0.5); }
+    .preview-box img { width: 100%; height: 100%; object-fit: cover; }
+    .preview-status {
+      position: absolute; bottom: 6px; right: 10px;
+      background: rgba(0,0,0,0.6); color: var(--text-primary);
+      font-size: 0.75em; padding: 2px 8px; border-radius: 10px; display: none;
+    }
+    .preview-box.has-image .preview-status { display: block; }
+
+    /* 建议源 / 数据操作 */
+    .suggestion-source { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .suggestion-source label { font-size: 0.9em; color: var(--text-tertiary); }
+    .suggestion-source select { flex: 1; padding: 8px 12px; cursor: pointer; }
+    .data-actions { display: flex; gap: 8px; }
+    .data-actions button {
+      flex: 1; background: var(--bg-input); border: 1px solid var(--border-input);
+      padding: 8px 10px; border-radius: var(--radius-sm); color: var(--text-tertiary);
+      cursor: pointer; font-size: 0.85em; transition: background var(--transition-fast);
+    }
+    .data-actions button:hover { background: rgba(255,255,255,0.2); }
+    .version-info {
+      text-align: center; font-size: 0.75em; color: var(--text-faint);
+      margin-top: 20px; flex-shrink: 0; padding-bottom: 10px;
+      border-top: 1px solid var(--border-light); padding-top: 15px; letter-spacing: 0.5px;
+    }
+
+    /* 搜索栏 */
+    .search-section { margin-bottom: 40px; }
+    .search-wrapper {
+      display: flex; align-items: center; background: var(--bg-glass);
+      backdrop-filter: blur(12px); border-radius: var(--radius-full);
+      padding: 0 18px; border: 1px solid var(--border-input);
+      transition: box-shadow var(--transition-normal);
+      width: 100%; max-width: 600px; margin: 0 auto; position: relative;
+    }
+    .search-wrapper:focus-within { box-shadow: 0 0 20px var(--accent-glow); }
+    .engine-selector {
+      position: relative; display: flex; align-items: center;
+      background: rgba(255,255,255,0.08); border-radius: var(--radius-xl);
+      padding: 8px 14px; cursor: pointer; user-select: none;
+      margin-right: 10px; transition: background var(--transition-fast);
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .engine-selector:hover { background: var(--bg-glass-hover); }
+    .current-engine { font-weight: 500; color: var(--text-primary); display: flex; align-items: center; gap: 5px; }
+    .arrow-down { font-size: 12px; margin-left: 4px; transition: transform var(--transition-fast); }
+    .engine-selector.active .arrow-down { transform: rotate(180deg); }
+    .engine-dropdown {
+      position: absolute; top: calc(100% + 10px); left: 0;
+      background: rgba(30,30,50,0.95); backdrop-filter: blur(15px);
+      border-radius: var(--radius-lg); border: 1px solid var(--border-medium);
+      box-shadow: var(--shadow-lg); list-style: none;
+      min-width: 160px; max-width: 220px; max-height: 320px;
+      overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain;
+      z-index: 100; opacity: 0; visibility: hidden;
+      transform: translateY(-8px); transition: all var(--transition-fast) ease;
+      scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.2) transparent;
+    }
+    .engine-dropdown::-webkit-scrollbar { width: 4px; }
+    .engine-dropdown::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+    .engine-dropdown.show { opacity: 1; visibility: visible; transform: translateY(0); }
+    .engine-dropdown li {
+      padding: 12px 16px; cursor: pointer; transition: background var(--transition-fast);
+      color: #ddd; display: flex; align-items: center; gap: 8px; white-space: nowrap;
+    }
+    .engine-dropdown li:hover { background: rgba(92,156,230,0.3); color: var(--text-primary); }
+    .engine-dropdown li.active { background: rgba(92,156,230,0.4); color: var(--text-primary); font-weight: 600; }
+
+    /* 搜索输入 */
+    .search-input-area { flex: 1; position: relative; display: flex; align-items: center; }
+    .search-input {
+      width: 100%; background: none; border: none; padding: 16px 10px;
+      font-size: 1.1em; color: var(--text-primary); outline: none; min-width: 0;
+    }
+    .search-input::placeholder { color: rgba(255,255,255,0.5); }
+    .search-button {
+      background: none; border: none; color: var(--text-primary);
+      font-size: 1.4em; cursor: pointer; padding: 10px;
+      display: flex; align-items: center; border-radius: 50%;
+      transition: background var(--transition-fast); flex-shrink: 0;
+    }
+    .search-button:hover { background: var(--bg-glass); }
+
+    /* 建议下拉 */
+    .suggestions-box {
+      position: absolute; top: calc(100% + 8px); left: 0; right: 0;
+      max-height: 240px; overflow-y: auto; -webkit-overflow-scrolling: touch;
+      background: rgba(30,30,50,0.95); backdrop-filter: blur(15px);
+      border-radius: var(--radius-lg); border: 1px solid var(--border-medium);
+      box-shadow: var(--shadow-lg); list-style: none; z-index: 101; display: none;
+    }
+    .suggestions-box.show { display: block; }
+    .suggestion-item {
+      padding: 12px 16px; cursor: pointer; color: #ddd;
+      transition: background var(--transition-fast);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .suggestion-item:hover, .suggestion-item.active-suggestion {
+      background: rgba(92,156,230,0.3); color: var(--text-primary);
+    }
+    .suggestion-icon { opacity: 0.7; font-size: 0.9em; }
+
+    /* 开关 */
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; }
+    .toggle-row label { font-size: 0.9em; color: var(--text-tertiary); }
+    .toggle-switch {
+      position: relative; width: 44px; height: 24px;
+      background: rgba(255,255,255,0.2); border-radius: 12px;
+      cursor: pointer; transition: background var(--transition-normal); flex-shrink: 0;
+    }
+    .toggle-switch.active { background: var(--accent); }
+    .toggle-switch::after {
+      content: ''; position: absolute; top: 2px; left: 2px;
+      width: 20px; height: 20px; background: white; border-radius: 50%;
+      transition: transform var(--transition-normal);
+    }
+    .toggle-switch.active::after { transform: translateX(20px); }
+
+    @media (max-width: 600px) {
+      .search-wrapper { padding: 0 12px; }
+      .engine-selector { padding: 6px 10px; font-size: 0.9em; }
+      .engine-dropdown { max-width: 85vw; max-height: 260px; }
+    }
+  </style>
+</head>
+<body class="default-bg">
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <div class="top-buttons">
+    <div class="settings-btn" id="settingsBtn" title="设置">⚙️</div>
+    <div class="bookmarks-btn" id="bookmarksBtn" title="收藏管理">⭐</div>
+  </div>
+
+  <div class="overlay" id="overlay"></div>
+
+  <!-- 设置面板 -->
+  <div class="settings-panel" id="settingsPanel">
+    <div class="panel-header">
+      <span>设置</span>
+      <button class="close-btn" id="closePanelBtn">✕</button>
+    </div>
+
+    <div class="section" id="sectionEngines">
+      <div class="section-header">
+        <span class="section-title">🔍 搜索引擎管理</span>
+        <span class="section-arrow">▼</span>
+      </div>
+      <div class="section-body">
+        <ul class="engine-list" id="engineList"></ul>
+        <div class="add-engine-form">
+          <input type="text" id="newEngineName" placeholder="引擎名称，如 Google" autocomplete="off">
+          <input type="text" id="newEngineUrl" placeholder="搜索URL，使用 {keyword} 占位" autocomplete="off">
+          <button id="addEngineBtn">添加引擎</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="sectionWallpaper">
+      <div class="section-header">
+        <span class="section-title">🎨 自定义壁纸</span>
+        <span class="section-arrow">▼</span>
+      </div>
+      <div class="section-body">
+        <div class="wallpaper-mode-selector" id="wallpaperModeSelector">
+          <div class="mode-card" data-mode="none"><span class="mode-icon">🚫</span><span class="mode-label">关闭</span></div>
+          <div class="mode-card" data-mode="portrait"><span class="mode-icon">📱</span><span class="mode-label">竖屏壁纸</span></div>
+          <div class="mode-card" data-mode="landscape"><span class="mode-icon">🖥️</span><span class="mode-label">横屏壁纸</span></div>
+        </div>
+        <div class="mode-content" id="modeContentNone" style="display:none;">
+          <p style="color:var(--text-dim);font-size:0.85em;text-align:center;padding:10px 0;">使用默认渐变背景</p>
+        </div>
+        <div class="mode-content" id="modeContentPortrait" style="display:none;">
+          <div class="wallpaper-input-row">
+            <input type="text" id="wallpaperPortraitUrl" placeholder="输入竖屏壁纸直链，如 https://..." autocomplete="off">
+            <button id="savePortraitBtn">保存</button>
+          </div>
+          <div class="preview-box" id="previewBoxPortrait"><span>预览区域</span></div>
+        </div>
+        <div class="mode-content" id="modeContentLandscape" style="display:none;">
+          <div class="wallpaper-input-row">
+            <input type="text" id="wallpaperLandscapeUrl" placeholder="输入横屏壁纸直链，如 https://..." autocomplete="off">
+            <button id="saveLandscapeBtn">保存</button>
+          </div>
+          <div class="preview-box" id="previewBoxLandscape"><span>预览区域</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="sectionSuggestions">
+      <div class="section-header">
+        <span class="section-title">💡 搜索建议</span>
+        <span class="section-arrow">▼</span>
+      </div>
+      <div class="section-body">
+        <div class="suggestion-source">
+          <label for="suggestionSourceSelect">来源：</label>
+          <select id="suggestionSourceSelect">
+            <option value="google">Google (需翻墙)</option>
+            <option value="bing">Bing (国内可用)</option>
+            <option value="duckduckgo">DuckDuckGo (备选)</option>
+          </select>
+        </div>
+        <div class="toggle-row">
+          <label for="autofocusToggle">页面加载时自动聚焦搜索框</label>
+          <div class="toggle-switch" id="autofocusToggle" title="开启后页面加载自动弹出键盘（移动端）"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="sectionGist">
+      <div class="section-header">
+        <span class="section-title">☁️ 云端同步 (GitHub Gist)</span>
+        <span class="section-arrow">▼</span>
+      </div>
+      <div class="section-body">
+        <div style="margin-bottom:12px;font-size:0.82em;color:#999;">
+          使用 Secret Gist 同步你的配置（引擎、书签、壁纸等）。<br>
+          首次使用需创建 Gist 并生成 Token（勾选 gist 权限）。<br>
+          Token 只保存在本地，不会上传到云端。
+        </div>
+        <div class="add-engine-form" style="margin-bottom:10px;">
+          <input type="password" id="gistTokenInput" placeholder="GitHub Token (ghp_...)" autocomplete="off">
+          <input type="text" id="gistIdInput" placeholder="Gist ID（网址末尾长串）" autocomplete="off">
+        </div>
+        <div class="data-actions">
+          <button id="uploadGistBtn">⬆️ 同步到云端</button>
+          <button id="downloadGistBtn">⬇️ 从云端下载</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="sectionData">
+      <div class="section-header">
+        <span class="section-title">💾 数据管理</span>
+        <span class="section-arrow">▼</span>
+      </div>
+      <div class="section-body">
+        <div class="data-actions">
+          <button id="exportDataBtn">导出设置</button>
+          <button id="importDataBtn">导入设置</button>
+        </div>
+        <input type="file" id="importFileInput" accept=".json" style="display:none;">
+      </div>
+    </div>
+
+    <div class="version-info">v0.75 · 重构版 · 更新于 2026-05-15</div>
+    <div style="height:20px;flex-shrink:0;"></div>
+  </div>
+
+  <!-- 搜索主界面 -->
+  <div class="main-container">
+    <div class="search-section">
+      <div class="search-wrapper">
+        <div class="engine-selector" id="engineSelector">
+          <span class="current-engine" id="currentEngineDisplay">Google</span>
+          <span class="arrow-down">▼</span>
+          <ul class="engine-dropdown" id="engineDropdown"></ul>
+        </div>
+        <div class="search-input-area">
+          <input type="text" class="search-input" id="searchInput" placeholder="输入关键词搜索..." autocomplete="off">
+          <ul class="suggestions-box" id="suggestionsBox"></ul>
+        </div>
+        <button class="search-button" id="searchButton">🔍</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      /* ========================================================================
+       *  我的主页 v0.75 — 重构版
+       *  结构：常量 → 工具 → Store → 状态 → DOM → Toast → Jsonp → 建议
+       *       → Gist → UI组件 → 刷新 → 初始化
+       * ======================================================================== */
+
+      // ==================== 1. 常量 ====================
+      var STORAGE_KEY = {
+        ENGINES: 'searchEngines',
+        CURRENT_INDEX: 'currentEngineIndex',
+        WALLPAPER: 'wallpaperSettings',
+        SUGGESTION_SOURCE: 'suggestionSource',
+        AUTOFOCUS: 'autofocus',
+        BOOKMARKS: 'bookmarks',
+        BOOKMARKS_COLLAPSED: 'bookmarksCollapsed',
+        COLLAPSED_SECTIONS: 'collapsedSections',
+        GIST_TOKEN: 'gistToken',
+        GIST_ID: 'gistId'
+      };
+
+      var GIST_FILENAME = 'my_config.json';
+
+      var DEFAULT_ENGINES = [
+        { name: 'Google', url: 'https://www.google.com/search?q={keyword}' },
+        { name: 'Bing', url: 'https://www.bing.com/search?q={keyword}' },
+        { name: '百度', url: 'https://www.baidu.com/s?wd={keyword}' },
+        { name: 'DuckDuckGo', url: 'https://duckduckgo.com/?q={keyword}' }
+      ];
+
+      var DEFAULT_BOOKMARKS = [
+        {
+          id: 'cat_demo_1', name: '常用工具',
+          websites: [
+            { id: 'web_demo_1', name: 'GitHub', url: 'https://github.com' },
+            { id: 'web_demo_2', name: 'Google 翻译', url: 'https://translate.google.com' }
+          ]
+        },
+        {
+          id: 'cat_demo_2', name: '技术社区',
+          websites: [
+            { id: 'web_demo_3', name: '掘金', url: 'https://juejin.cn' },
+            { id: 'web_demo_4', name: 'Stack Overflow', url: 'https://stackoverflow.com' }
+          ]
+        }
+      ];
+
+      var DEFAULT_WALLPAPER = { mode: 'none', portraitUrl: '', landscapeUrl: '' };
+      var VALID_MODES = ['none', 'portrait', 'landscape'];
+      var VALID_SUGGESTION_SOURCES = ['google', 'bing', 'duckduckgo'];
+
+      // ==================== 2. 工具函数 ====================
+      var Utils = {
+        escapeHtml: function(text) {
+          var map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+          return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
+        },
+        generateId: function() {
+          return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 6);
+        },
+        normalizeUrl: function(url) {
+          url = String(url).trim();
+          if (!url) return '';
+          try {
+            if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+            var p = new URL(url);
+            if (p.protocol !== 'http:' && p.protocol !== 'https:') return url;
+            return p.href;
+          } catch (e) { return url; }
+        },
+        escapeCssUrl: function(url) {
+          return encodeURI(url).replace(/'/g, '%27').replace(/"/g, '%22').replace(/\\/g, '%5C').replace(/\)/g, '%29').replace(/\(/g, '%28');
+        },
+        safeJsonParse: function(str, fallback) {
+          try { return str ? JSON.parse(str) : fallback; } catch (e) { return fallback; }
+        },
+        deepClone: function(obj) { return JSON.parse(JSON.stringify(obj)); }
+      };
+
+      // ==================== 3. Store 层 ====================
+      var Store = {
+        getEngines: function() {
+          var arr = Utils.safeJsonParse(localStorage.getItem(STORAGE_KEY.ENGINES), null);
+          if (!arr || !Array.isArray(arr) || arr.length === 0) arr = Utils.deepClone(DEFAULT_ENGINES);
+          return arr.filter(function(e) { return e.name && e.url && e.url.indexOf('{keyword}') !== -1; });
+        },
+        setEngines: function(v) { localStorage.setItem(STORAGE_KEY.ENGINES, JSON.stringify(v)); },
+
+        getCurrentIndex: function() {
+          var i = parseInt(localStorage.getItem(STORAGE_KEY.CURRENT_INDEX) || '0', 10);
+          return isNaN(i) ? 0 : i;
+        },
+        setCurrentIndex: function(v) { localStorage.setItem(STORAGE_KEY.CURRENT_INDEX, String(v)); },
+
+        getWallpaper: function() {
+          var raw = Utils.safeJsonParse(localStorage.getItem(STORAGE_KEY.WALLPAPER), null);
+          if (raw && typeof raw === 'object') {
+            var m = {};
+            Object.keys(DEFAULT_WALLPAPER).forEach(function(k) { m[k] = raw.hasOwnProperty(k) ? raw[k] : DEFAULT_WALLPAPER[k]; });
+            if (VALID_MODES.indexOf(m.mode) === -1) m.mode = 'none';
+            return m;
+          }
+          var oldUrl = (localStorage.getItem('wallpaperUrl') || '').trim();
+          if (oldUrl) {
+            var migrated = { mode: 'portrait', portraitUrl: oldUrl, landscapeUrl: '' };
+            localStorage.setItem(STORAGE_KEY.WALLPAPER, JSON.stringify(migrated));
+            localStorage.removeItem('wallpaperUrl');
+            return migrated;
+          }
+          return Utils.deepClone(DEFAULT_WALLPAPER);
+        },
+        setWallpaper: function(v) { localStorage.setItem(STORAGE_KEY.WALLPAPER, JSON.stringify(v)); },
+
+        getSuggestionSource: function() {
+          var v = localStorage.getItem(STORAGE_KEY.SUGGESTION_SOURCE) || 'google';
+          return VALID_SUGGESTION_SOURCES.indexOf(v) !== -1 ? v : 'google';
+        },
+        setSuggestionSource: function(v) { localStorage.setItem(STORAGE_KEY.SUGGESTION_SOURCE, v); },
+
+        getAutofocus: function() { return localStorage.getItem(STORAGE_KEY.AUTOFOCUS) !== 'false'; },
+        setAutofocus: function(v) { localStorage.setItem(STORAGE_KEY.AUTOFOCUS, v ? 'true' : 'false'); },
+
+        getBookmarks: function() {
+          var arr = Utils.safeJsonParse(localStorage.getItem(STORAGE_KEY.BOOKMARKS), null);
+          if (!arr || !Array.isArray(arr) || arr.length === 0) arr = Utils.deepClone(DEFAULT_BOOKMARKS);
+          return arr.filter(function(c) { return c.name && Array.isArray(c.websites); });
+        },
+        setBookmarks: function(v) { localStorage.setItem(STORAGE_KEY.BOOKMARKS, JSON.stringify(v)); },
+
+        getCollapsed: function() { return Utils.safeJsonParse(localStorage.getItem(STORAGE_KEY.COLLAPSED_SECTIONS), {}); },
+        setCollapsed: function(v) { localStorage.setItem(STORAGE_KEY.COLLAPSED_SECTIONS, JSON.stringify(v)); },
+
+        getBookmarksCollapsed: function() { return Utils.safeJsonParse(localStorage.getItem(STORAGE_KEY.BOOKMARKS_COLLAPSED), {}); },
+        setBookmarksCollapsed: function(v) { localStorage.setItem(STORAGE_KEY.BOOKMARKS_COLLAPSED, JSON.stringify(v)); },
+
+        getGistToken: function() { return localStorage.getItem(STORAGE_KEY.GIST_TOKEN) || ''; },
+        setGistToken: function(v) { localStorage.setItem(STORAGE_KEY.GIST_TOKEN, v); },
+        getGistId: function() { return localStorage.getItem(STORAGE_KEY.GIST_ID) || ''; },
+        setGistId: function(v) { localStorage.setItem(STORAGE_KEY.GIST_ID, v); },
+
+        buildSnapshot: function() {
+          return {
+            searchEngines: Store.getEngines(),
+            currentEngineIndex: Store.getCurrentIndex(),
+            wallpaperSettings: Store.getWallpaper(),
+            suggestionSource: Store.getSuggestionSource(),
+            autofocus: Store.getAutofocus(),
+            bookmarks: Store.getBookmarks(),
+            collapsedSections: Store.getCollapsed(),
+            bookmarksCollapsed: Store.getBookmarksCollapsed(),
+            gistId: Store.getGistId()
+          };
+        },
+
+        applySnapshot: function(data) {
+          if (!data || typeof data !== 'object') return false;
+          var engines = (data.searchEngines && Array.isArray(data.searchEngines)) ?
+            data.searchEngines.filter(function(e) { return e.name && e.url && e.url.indexOf('{keyword}') !== -1; }) : [];
+          if (engines.length === 0) engines = Utils.deepClone(DEFAULT_ENGINES);
+          Store.setEngines(engines);
+          var idx = parseInt(data.currentEngineIndex, 10);
+          if (isNaN(idx) || idx < 0 || idx >= engines.length) idx = 0;
+          Store.setCurrentIndex(idx);
+          if (data.wallpaperSettings && typeof data.wallpaperSettings === 'object') {
+            var ws = {};
+            Object.keys(DEFAULT_WALLPAPER).forEach(function(k) { ws[k] = data.wallpaperSettings.hasOwnProperty(k) ? data.wallpaperSettings[k] : DEFAULT_WALLPAPER[k]; });
+            if (VALID_MODES.indexOf(ws.mode) === -1) ws.mode = 'none';
+            Store.setWallpaper(ws);
+          } else if (typeof data.wallpaper === 'string') {
+            var oldUrl = data.wallpaper.trim();
+            Store.setWallpaper({ mode: oldUrl ? 'portrait' : 'none', portraitUrl: oldUrl, landscapeUrl: '' });
+          }
+          if (data.suggestionSource && VALID_SUGGESTION_SOURCES.indexOf(data.suggestionSource) !== -1) Store.setSuggestionSource(data.suggestionSource);
+          if (data.autofocus !== undefined) Store.setAutofocus(!!data.autofocus);
+          if (data.bookmarks && Array.isArray(data.bookmarks)) {
+            var bm = data.bookmarks.filter(function(c) { return c.name && Array.isArray(c.websites); });
+            if (bm.length > 0) Store.setBookmarks(bm);
+          }
+          if (data.collapsedSections && typeof data.collapsedSections === 'object') Store.setCollapsed(data.collapsedSections);
+          if (data.bookmarksCollapsed && typeof data.bookmarksCollapsed === 'object') Store.setBookmarksCollapsed(data.bookmarksCollapsed);
+          if (data.gistId && typeof data.gistId === 'string') Store.setGistId(data.gistId.trim());
+          return true;
+        }
+      };
+
+      // ==================== 4. 应用状态 ====================
+      var state = {
+        engines: Store.getEngines(),
+        currentIndex: Store.getCurrentIndex(),
+        wallpaper: Store.getWallpaper(),
+        suggestionSource: Store.getSuggestionSource(),
+        autofocus: Store.getAutofocus(),
+        requestId: 0,
+        activeSuggestionIdx: -1,
+        jsonpScript: null,
+        bookmarksWindow: null
+      };
+      if (state.currentIndex >= state.engines.length || state.currentIndex < 0) {
+        state.currentIndex = 0;
+        Store.setCurrentIndex(0);
+      }
+
+      // ==================== 5. DOM 引用 ====================
+      var $ = function(id) { return document.getElementById(id); };
+      var dom = {
+        body: document.body,
+        toastContainer: $('toastContainer'),
+        settingsBtn: $('settingsBtn'),
+        bookmarksBtn: $('bookmarksBtn'),
+        overlay: $('overlay'),
+        settingsPanel: $('settingsPanel'),
+        closePanelBtn: $('closePanelBtn'),
+        engineList: $('engineList'),
+        newEngineName: $('newEngineName'),
+        newEngineUrl: $('newEngineUrl'),
+        addEngineBtn: $('addEngineBtn'),
+        engineSelector: $('engineSelector'),
+        currentEngineDisplay: $('currentEngineDisplay'),
+        engineDropdown: $('engineDropdown'),
+        searchInput: $('searchInput'),
+        searchButton: $('searchButton'),
+        suggestionsBox: $('suggestionsBox'),
+        exportDataBtn: $('exportDataBtn'),
+        importDataBtn: $('importDataBtn'),
+        importFileInput: $('importFileInput'),
+        suggestionSourceSelect: $('suggestionSourceSelect'),
+        autofocusToggle: $('autofocusToggle'),
+        wallpaperModeSelector: $('wallpaperModeSelector'),
+        modeContentNone: $('modeContentNone'),
+        modeContentPortrait: $('modeContentPortrait'),
+        modeContentLandscape: $('modeContentLandscape'),
+        wallpaperPortraitUrl: $('wallpaperPortraitUrl'),
+        wallpaperLandscapeUrl: $('wallpaperLandscapeUrl'),
+        savePortraitBtn: $('savePortraitBtn'),
+        saveLandscapeBtn: $('saveLandscapeBtn'),
+        previewBoxPortrait: $('previewBoxPortrait'),
+        previewBoxLandscape: $('previewBoxLandscape'),
+        gistTokenInput: $('gistTokenInput'),
+        gistIdInput: $('gistIdInput'),
+        uploadGistBtn: $('uploadGistBtn'),
+        downloadGistBtn: $('downloadGistBtn')
+      };
+
+      // ==================== 6. Toast ====================
+      var Toast = (function() {
+        var timer = null;
+        function show(msg, dur) {
+          if (dur === undefined) dur = 2000;
+          if (timer) clearTimeout(timer);
+          var old = dom.toastContainer.querySelector('.toast');
+          if (old) { old.classList.remove('show'); setTimeout(function() { if (old.parentNode) old.parentNode.removeChild(old); }, 300); }
+          var el = document.createElement('div');
+          el.className = 'toast';
+          el.textContent = msg;
+          dom.toastContainer.appendChild(el);
+          void el.offsetWidth;
+          el.classList.add('show');
+          timer = setTimeout(function() { el.classList.remove('show'); setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 300); }, dur);
+        }
+        return { show: show };
+      })();
+
+      // ==================== 7. JSONP 客户端 ====================
+      var JsonpClient = (function() {
+        function fetch(url, query, extractFn, timeoutMs) {
+          if (timeoutMs === undefined) timeoutMs = 8000;
+          removeScript();
+          var cbName = 'jsonp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+          var fullUrl = url.replace('{query}', encodeURIComponent(query)).replace('{callback}', cbName);
+          return new Promise(function(resolve) {
+            var script = document.createElement('script');
+            var resolved = false;
+            var tid;
+            function cleanup() {
+              if (tid) clearTimeout(tid);
+              if (state.jsonpScript === script) state.jsonpScript = null;
+              if (script.parentNode) script.parentNode.removeChild(script);
+              delete window[cbName];
+            }
+            window[cbName] = function(data) {
+              if (resolved) return;
+              resolved = true;
+              cleanup();
+              try { resolve(extractFn(data, query)); } catch (e) { resolve([]); }
+            };
+            script.onerror = function() {
+              if (resolved) return;
+              resolved = true;
+              cleanup();
+              resolve([]);
+            };
+            tid = setTimeout(function() {
+              if (resolved) return;
+              resolved = true;
+              cleanup();
+              resolve([]);
+            }, timeoutMs);
+            state.jsonpScript = script;
+            script.src = fullUrl;
+            document.body.appendChild(script);
+          });
+        }
+        function removeScript() {
+          if (state.jsonpScript && state.jsonpScript.parentNode) state.jsonpScript.parentNode.removeChild(state.jsonpScript);
+          state.jsonpScript = null;
+        }
+        return { fetch: fetch, remove: removeScript };
+      })();
+
+      // ==================== 8. 搜索建议服务 ====================
+      var SuggestionService = (function() {
+        var sources = {
+          google: {
+            url: 'https://suggestqueries.google.com/complete/search?client=chrome&q={query}&jsonp={callback}',
+            extract: function(d) { return (d && d[1] && Array.isArray(d[1])) ? d[1] : []; }
+          },
+          bing: {
+            url: 'https://api.bing.com/osjson.aspx?query={query}&JsonType=callback&JsonCallback={callback}',
+            extract: function(d) { return (d && d[1] && Array.isArray(d[1])) ? d[1] : []; }
+          },
+          duckduckgo: {
+            url: 'https://duckduckgo.com/ac/?q={query}&type=list&callback={callback}',
+            extract: function(d) {
+              var r = [];
+              if (d && Array.isArray(d)) d.forEach(function(item) { if (item && item.phrase) r.push(item.phrase); });
+              return r;
+            }
+          }
+        };
+        function fetch(query, source) {
+          var src = sources[source] || sources.google;
+          return JsonpClient.fetch(src.url, query, src.extract);
+        }
+        return { fetch: fetch };
+      })();
+
+      // ==================== 9. Gist 服务 ====================
+      var GistService = (function() {
+        var BASE = 'https://api.github.com/gists/';
+        function upload(token, gistId, data) {
+          var payload = { files: {} };
+          payload.files[GIST_FILENAME] = { content: JSON.stringify(data, null, 2) };
+          return fetch(BASE + encodeURIComponent(gistId), {
+            method: 'PATCH',
+            headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          }).then(function(res) {
+            if (!res.ok) return res.json().then(function(err) { throw new Error(err.message || 'HTTP ' + res.status); });
+            return res.json();
+          });
+        }
+        function download(token, gistId) {
+          return fetch(BASE + encodeURIComponent(gistId), {
+            method: 'GET',
+            headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
+          }).then(function(res) {
+            if (!res.ok) return res.json().then(function(err) { throw new Error(err.message || 'HTTP ' + res.status); });
+            return res.json();
+          }).then(function(data) {
+            if (!data.files || !data.files[GIST_FILENAME]) throw new Error('Gist 中未找到文件 ' + GIST_FILENAME);
+            var content = data.files[GIST_FILENAME].content;
+            if (!content || content.trim().length === 0) throw new Error('文件内容为空');
+            return JSON.parse(content);
+          });
+        }
+        return { upload: upload, download: download };
+      })();
+
+      // ==================== 10. UI 组件 ====================
+
+      // 10a. 面板开关
+      var PanelUI = (function() {
+        function open() { dom.settingsPanel.classList.add('open');
+          dom.overlay.classList.add('active');
+          dom.body.classList.add('no-scroll'); }
+        function close() { dom.settingsPanel.classList.remove('open');
+          dom.overlay.classList.remove('active');
+          dom.body.classList.remove('no-scroll'); }
+        function bind() {
+          dom.settingsBtn.addEventListener('click', open);
+          dom.closePanelBtn.addEventListener('click', close);
+          dom.overlay.addEventListener('click', close);
+          document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && dom.settingsPanel.classList.contains('open')) close(); });
+          var startY = 0;
+          dom.settingsPanel.addEventListener('touchstart', function(e) { startY = e.touches[0].clientY; }, { passive: true });
+          dom.settingsPanel.addEventListener('touchmove', function(e) {
+            var y = e.touches[0].clientY;
+            var st = dom.settingsPanel.scrollTop;
+            var sh = dom.settingsPanel.scrollHeight;
+            var ch = dom.settingsPanel.clientHeight;
+            if ((st === 0 && y > startY) || (st + ch >= sh - 1 && y < startY)) e.preventDefault();
+          }, { passive: false });
+        }
+        return { open: open, close: close, bind: bind };
+      })();
+
+      // 10b. 折叠分区
+      var CollapseUI = (function() {
+        function init() {
+          document.querySelectorAll('.section-header').forEach(function(hdr) {
+            hdr.addEventListener('click', function() {
+              var section = this.parentElement;
+              var bodyEl = section.querySelector('.section-body');
+              if (section.classList.contains('collapsed')) {
+                section.classList.remove('collapsed');
+                bodyEl.style.maxHeight = bodyEl.scrollHeight + 'px';
+                setTimeout(function() { if (!section.classList.contains('collapsed')) bodyEl.style.maxHeight = 'none'; }, 450);
+              } else {
+                bodyEl.style.maxHeight = bodyEl.scrollHeight + 'px';
+                void bodyEl.offsetWidth;
+                section.classList.add('collapsed');
+                bodyEl.style.maxHeight = '0px';
+              }
+              save();
+            });
+          });
+        }
+        function restore() {
+          var st = Store.getCollapsed();
+          Object.keys(st).forEach(function(id) {
+            if (st[id]) { var s = document.getElementById(id); if (s) { var b = s.querySelector('.section-body'); if (b) { s.classList.add('collapsed');
+                b.style.maxHeight = '0px'; } } }
+          });
+        }
+        function save() {
+          var c = {};
+          document.querySelectorAll('.section').forEach(function(s) { if (s.id) c[s.id] = s.classList.contains('collapsed'); });
+          Store.setCollapsed(c);
+        }
+        return { init: init, restore: restore };
+      })();
+
+      // 10c. 壁纸 UI
+      var WallpaperUI = (function() {
+        var modeContentMap = {};
+        function init() {
+          modeContentMap = { 'none': dom.modeContentNone, 'portrait': dom.modeContentPortrait, 'landscape': dom.modeContentLandscape };
+          document.querySelectorAll('.mode-card').forEach(function(card) {
+            card.addEventListener('click', function() { setMode(this.dataset.mode); });
+          });
+          dom.savePortraitBtn.addEventListener('click', function() { saveUrl('portrait', dom.wallpaperPortraitUrl, dom.previewBoxPortrait); });
+          dom.saveLandscapeBtn.addEventListener('click', function() { saveUrl('landscape', dom.wallpaperLandscapeUrl, dom.previewBoxLandscape); });
+          var pt = null,
+            lt = null;
+          dom.wallpaperPortraitUrl.addEventListener('input', function() { clearTimeout(pt);
+            pt = setTimeout(function() { updatePreview(dom.previewBoxPortrait, dom.wallpaperPortraitUrl.value.trim()); }, 400); });
+          dom.wallpaperLandscapeUrl.addEventListener('input', function() { clearTimeout(lt);
+            lt = setTimeout(function() { updatePreview(dom.previewBoxLandscape, dom.wallpaperLandscapeUrl.value.trim()); }, 400); });
+          refreshUI();
+        }
+        function setMode(mode) { if (state.wallpaper.mode === mode) return;
+          state.wallpaper.mode = mode;
+          Store.setWallpaper(state.wallpaper);
+          refreshUI(); }
+
+        function saveUrl(mode, inputEl, previewBox) {
+          var url = inputEl.value.trim();
+          if (!url) {
+            if (mode === 'portrait') state.wallpaper.portraitUrl = '';
+            else state.wallpaper.landscapeUrl = '';
+            Store.setWallpaper(state.wallpaper);
+            updatePreview(previewBox, '');
+            if (state.wallpaper.mode === mode) applyBackground();
+            Toast.show((mode === 'portrait' ? '竖屏' : '横屏') + '壁纸已清除');
+            return;
+          }
+          url = Utils.normalizeUrl(url);
+          if (!url) { Toast.show('无效的 URL 格式'); return; }
+          inputEl.value = url;
+          var testImg = new Image();
+          testImg.onload = function() {
+            if (mode === 'portrait') state.wallpaper.portraitUrl = url;
+            else state.wallpaper.landscapeUrl = url;
+            Store.setWallpaper(state.wallpaper);
+            updatePreview(previewBox, url);
+            if (state.wallpaper.mode === mode) applyBackground();
+            Toast.show((mode === 'portrait' ? '竖屏' : '横屏') + '壁纸已保存');
+          };
+          testImg.onerror = function() { Toast.show('图片无法加载，请检查链接'); };
+          testImg.src = url;
+        }
+
+        function updatePreview(box, url) {
+          if (!url) { box.innerHTML = '<span>预览区域</span>';
+            box.classList.remove('has-image'); return; }
+          var img = new Image();
+          img.onload = function() {
+            box.innerHTML = '';
+            var ie = document.createElement('img');
+            ie.src = url;
+            ie.alt = '预览';
+            box.appendChild(ie);
+            var se = document.createElement('span');
+            se.className = 'preview-status';
+            se.textContent = img.naturalWidth + '\u00D7' + img.naturalHeight;
+            box.appendChild(se);
+            box.classList.add('has-image');
+          };
+          img.onerror = function() { box.innerHTML = '<span style="color:var(--danger);">图片加载失败</span>';
+            box.classList.remove('has-image'); };
+          img.src = url;
+        }
+
+        function applyBackground() {
+          var imageUrl = '';
+          if (state.wallpaper.mode === 'portrait') imageUrl = state.wallpaper.portraitUrl;
+          else if (state.wallpaper.mode === 'landscape') imageUrl = state.wallpaper.landscapeUrl;
+          if (imageUrl) { dom.body.style.setProperty('background-image', "url('" + Utils.escapeCssUrl(imageUrl) + "')");
+            dom.body.classList.remove('default-bg'); } else { dom.body.style.removeProperty('background-image');
+            dom.body.classList.add('default-bg'); }
+        }
+
+        function refreshUI() {
+          document.querySelectorAll('.mode-card').forEach(function(c) { c.classList.toggle('selected', c.dataset.mode === state.wallpaper.mode); });
+          Object.keys(modeContentMap).forEach(function(k) { modeContentMap[k].style.display = (k === state.wallpaper.mode) ? '' : 'none'; });
+          dom.wallpaperPortraitUrl.value = state.wallpaper.portraitUrl || '';
+          dom.wallpaperLandscapeUrl.value = state.wallpaper.landscapeUrl || '';
+          updatePreview(dom.previewBoxPortrait, state.wallpaper.portraitUrl || '');
+          updatePreview(dom.previewBoxLandscape, state.wallpaper.landscapeUrl || '');
+          applyBackground();
+        }
+        return { init: init, refreshUI: refreshUI, applyBackground: applyBackground };
+      })();
+
+      // 10d. 引擎列表 UI
+      var EngineListUI = (function() {
+        function render() {
+          dom.engineList.innerHTML = '';
+          state.engines.forEach(function(eng, idx) {
+            var li = document.createElement('li');
+            li.className = 'engine-item';
+            li.innerHTML = '<span class="engine-name" title="' + Utils.escapeHtml(eng.name) + '">' + Utils.escapeHtml(eng.name) +
+              '</span><div class="engine-actions">' +
+              '<button class="edit-engine" data-index="' + idx + '" title="编辑">✎</button>' +
+              '<button class="delete-engine" data-index="' + idx + '"' + (state.engines.length <= 1 ? ' disabled style="opacity:0.3;cursor:not-allowed;"' : '') + ' title="删除">🗑️</button>' +
+              '</div>';
+            dom.engineList.appendChild(li);
+          });
+        }
+
+        function bindEvents() {
+          dom.engineList.addEventListener('click', function(e) {
+            var eb = e.target.closest('.edit-engine');
+            var db = e.target.closest('.delete-engine');
+            if (eb) { e.stopPropagation();
+              editEngine(parseInt(eb.dataset.index, 10)); }
+            if (db) { e.stopPropagation(); var idx = parseInt(db.dataset.index, 10); if (state.engines.length <= 1) return;
+              deleteEngine(idx); }
+          });
+        }
+
+        function editEngine(idx) {
+          var eng = state.engines[idx];
+          var n = prompt('修改引擎名称：', eng.name); if (n === null) return;
+          n = n.trim(); if (!n) { Toast.show('名称不能为空'); return; }
+          if (state.engines.find(function(e, i) { return i !== idx && e.name.toLowerCase() === n.toLowerCase(); })) { Toast.show('名称冲突'); return; }
+          var u = prompt('修改搜索 URL（使用 {keyword} 占位）：', eng.url); if (u === null) return;
+          u = u.trim().replace('%s', '{keyword}'); if (!u) { Toast.show('URL 不能为空'); return; } if (u.indexOf('{keyword}') === -1) { Toast.show('URL 必须包含 {keyword}'); return; }
+          state.engines[idx] = { name: n, url: u };
+          Store.setEngines(state.engines);
+          refreshAll();
+          Toast.show('引擎已更新');
+        }
+
+        function deleteEngine(idx) {
+          if (state.engines.length <= 1) return;
+          var name = state.engines[idx].name;
+          if (!confirm('确定删除「' + name + '」？')) return;
+          state.engines.splice(idx, 1);
+          Store.setEngines(state.engines);
+          if (state.currentIndex >= state.engines.length) state.currentIndex = state.engines.length - 1;
+          else if (state.currentIndex > idx) state.currentIndex--;
+          Store.setCurrentIndex(state.currentIndex);
+          refreshAll();
+          Toast.show('已删除「' + name + '」');
+        }
+
+        function addEngine() {
+          var n = dom.newEngineName.value.trim();
+          var u = dom.newEngineUrl.value.trim().replace('%s', '{keyword}');
+          if (!n || !u) { Toast.show('请填写名称和 URL'); return; }
+          if (state.engines.find(function(e) { return e.name.toLowerCase() === n.toLowerCase(); })) { Toast.show('名称已存在'); return; }
+          if (u.indexOf('{keyword}') === -1) { Toast.show('URL 必须包含 {keyword}'); return; }
+          state.engines.push({ name: n, url: u });
+          Store.setEngines(state.engines);
+          dom.newEngineName.value = '';
+          dom.newEngineUrl.value = '';
+          refreshAll();
+          Toast.show('引擎已添加');
+        }
+
+        function bindAddForm() {
+          dom.addEngineBtn.addEventListener('click', addEngine);
+          dom.newEngineUrl.addEventListener('keydown', function(e) { if (e.key === 'Enter') addEngine(); });
+        }
+        return { render: render, bindEvents: bindEvents, bindAddForm: bindAddForm };
+      })();
+
+      // 10e. 引擎下拉 UI
+      var EngineDropdownUI = (function() {
+        function render() {
+          var cur = state.engines[state.currentIndex] || state.engines[0];
+          dom.currentEngineDisplay.textContent = cur.name;
+          dom.engineDropdown.innerHTML = '';
+          state.engines.forEach(function(eng, idx) {
+            var li = document.createElement('li');
+            li.textContent = eng.name;
+            li.dataset.index = idx;
+            if (idx === state.currentIndex) li.classList.add('active');
+            li.addEventListener('click', function(e) { e.stopPropagation();
+              state.currentIndex = parseInt(this.dataset.index, 10);
+              Store.setCurrentIndex(state.currentIndex);
+              refreshAll();
+              close(); });
+            dom.engineDropdown.appendChild(li);
+          });
+        }
+
+        function open() { dom.engineDropdown.classList.add('show');
+          dom.engineSelector.classList.add('active'); var al = dom.engineDropdown.querySelector('li.active'); if (al) requestAnimationFrame(function() { al
+              .scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }); }
+
+        function close() { dom.engineDropdown.classList.remove('show');
+          dom.engineSelector.classList.remove('active'); }
+
+        function bind() {
+          dom.engineSelector.addEventListener('click', function(e) { e.stopPropagation();
+            dom.engineDropdown.classList.contains('show') ? close() : open(); });
+          document.addEventListener('click', function(ev) { if (!dom.engineSelector.contains(ev.target)) close(); });
+        }
+        return { render: render, bind: bind, close: close };
+      })();
+
+      // 10f. 搜索建议 UI
+      var SuggestionsUI = (function() {
+        var suggestTimer = null;
+
+        function bind() {
+          dom.searchInput.addEventListener('input', function() {
+            clearTimeout(suggestTimer);
+            var q = dom.searchInput.value.trim(); if (!q) { clear(); return; }
+            suggestTimer = setTimeout(function() { fetchAndRender(q); }, 400);
+          });
+          dom.searchInput.addEventListener('focus', function() { var q = dom.searchInput.value.trim(); if (q && !dom.suggestionsBox.classList
+              .contains('show')) fetchAndRender(q); });
+          dom.searchInput.addEventListener('keydown', function(e) {
+            var items = dom.suggestionsBox.querySelectorAll('.suggestion-item');
+            if (!dom.suggestionsBox.classList.contains('show') || items.length === 0) { if (e.key === 'Enter') { e.preventDefault();
+                doSearch(); } return; }
+            if (e.key === 'ArrowDown') { e.preventDefault();
+              state.activeSuggestionIdx = (state.activeSuggestionIdx + 1) % items.length;
+              setActive(state.activeSuggestionIdx); } else if (e.key === 'ArrowUp') { e.preventDefault();
+              state.activeSuggestionIdx = (state.activeSuggestionIdx - 1 + items.length) % items.length;
+              setActive(state.activeSuggestionIdx); } else if (e.key === 'Enter') { e.preventDefault(); if (state.activeSuggestionIdx >= 0 && state
+                .activeSuggestionIdx < items.length) dom.searchInput.value = items[state.activeSuggestionIdx].textContent.replace(/^🔍\s*/, '');
+              clear();
+              doSearch(); } else if (e.key === 'Escape') { clear();
+              EngineDropdownUI.close(); }
+          });
+          document.addEventListener('click', function(ev) { if (!dom.searchInput.contains(ev.target) && !dom.suggestionsBox.contains(ev.target)) clear(); });
+          dom.searchButton.addEventListener('click', doSearch);
+        }
+
+        function fetchAndRender(q) {
+          var rid = ++state.requestId;
+          SuggestionService.fetch(q, state.suggestionSource).then(function(sug) {
+            if (rid !== state.requestId) return; if (dom.searchInput.value.trim() !== q) return; if (!sug || sug.length === 0) { clear(); return; }
+            render(sug);
+          });
+        }
+
+        function render(sug) {
+          dom.suggestionsBox.innerHTML = '';
+          state.activeSuggestionIdx = -1;
+          sug.forEach(function(item, idx) {
+            var li = document.createElement('li');
+            li.className = 'suggestion-item';
+            li.innerHTML = '<span class="suggestion-icon">🔍</span>' + Utils.escapeHtml(item);
+            li.addEventListener('mousedown', function(e) { e.preventDefault();
+              dom.searchInput.value = item;
+              clear();
+              doSearch(); });
+            li.addEventListener('mouseenter', function() { setActive(idx); });
+            dom.suggestionsBox.appendChild(li);
+          });
+          dom.suggestionsBox.classList.add('show');
+        }
+
+        function setActive(idx) {
+          var items = dom.suggestionsBox.querySelectorAll('.suggestion-item');
+          items.forEach(function(i) { i.classList.remove('active-suggestion'); });
+          if (idx >= 0 && idx < items.length) { items[idx].classList.add('active-suggestion');
+            state.activeSuggestionIdx = idx; var it = items[idx]; var top = it.offsetTop; var bot = top + it.offsetHeight; var st = dom.suggestionsBox
+              .scrollTop; var h = dom.suggestionsBox.clientHeight; if (top < st) dom.suggestionsBox.scrollTop = top; else if (bot > st + h) dom
+              .suggestionsBox.scrollTop = bot - h; } else state.activeSuggestionIdx = -1;
+        }
+
+        function clear() { dom.suggestionsBox.innerHTML = '';
+          dom.suggestionsBox.classList.remove('show');
+          state.activeSuggestionIdx = -1; }
+
+        function doSearch() { var q = dom.searchInput.value.trim(); if (!q) return; var eng = state.engines[state.currentIndex]; if (!eng) return;
+          state.requestId++;
+          window.location.href = eng.url.replace('{keyword}', encodeURIComponent(q)); }
+        return { bind: bind, clear: clear, doSearch: doSearch };
+      })();
+
+      // 10g. 自动聚焦
+      var AutofocusUI = (function() {
+        function init() { apply();
+          dom.autofocusToggle.addEventListener('click', function() { state.autofocus = !state.autofocus;
+            Store.setAutofocus(state.autofocus);
+            apply();
+            Toast.show(state.autofocus ? '自动聚焦已开启' : '自动聚焦已关闭'); }); }
+
+        function apply() { if (state.autofocus) { dom.autofocusToggle.classList.add('active');
+            dom.searchInput.setAttribute('autofocus', 'autofocus');
+            dom.searchInput.focus(); } else { dom.autofocusToggle.classList.remove('active');
+            dom.searchInput.removeAttribute('autofocus');
+            dom.searchInput.blur(); } }
+        return { init: init, apply: apply };
+      })();
+
+      // 10h. 建议源选择
+      var SuggestionSourceUI = (function() {
+        function init() { dom.suggestionSourceSelect.value = state.suggestionSource;
+          dom.suggestionSourceSelect.addEventListener('change', function() { state.suggestionSource = this.value;
+            Store.setSuggestionSource(state.suggestionSource);
+            SuggestionsUI.clear();
+            Toast.show('已切换至 ' + this.options[this.selectedIndex].text.split(' ')[0]); }); }
+        return { init: init };
+      })();
+
+      // 10i. 数据导入导出
+      var DataIO = (function() {
+        function exportData() { var snap = Store.buildSnapshot(); var blob = new Blob([JSON.stringify(snap, null, 2)], { type: 'application/json' }); var
+            url = URL.createObjectURL(blob); var a = document.createElement('a');
+          a.href = url;
+          a.download = 'homepage-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          Toast.show('设置已导出'); }
+
+        function importData(file) { var reader = new FileReader();
+          reader.onload = function(e) { try { var data = JSON.parse(e.target.result); if (Store.applySnapshot(data)) { reloadState();
+              WallpaperUI.refreshUI();
+              refreshAll();
+              SuggestionsUI.clear(); var q = dom.searchInput.value.trim(); if (q) state.requestId++;
+              Toast.show('设置已导入'); } else Toast.show('无效的备份文件'); } catch (err) { Toast.show('文件解析失败'); } };
+          reader.readAsText(file); }
+
+        function bind() { dom.exportDataBtn.addEventListener('click', exportData);
+          dom.importDataBtn.addEventListener('click', function() { dom.importFileInput.click(); });
+          dom.importFileInput.addEventListener('change', function(e) { if (e.target.files[0]) { importData(e.target.files[0]);
+              dom.importFileInput.value = ''; } }); }
+        return { bind: bind };
+      })();
+
+      // 10j. Gist 同步 UI
+      var GistSyncUI = (function() {
+        function init() { dom.gistTokenInput.value = Store.getGistToken();
+          dom.gistIdInput.value = Store.getGistId(); }
+
+        function bind() {
+          dom.gistTokenInput.addEventListener('input', function() { Store.setGistToken(dom.gistTokenInput.value.trim()); });
+          dom.gistIdInput.addEventListener('input', function() { Store.setGistId(dom.gistIdInput.value.trim()); });
+          dom.uploadGistBtn.addEventListener('click', function() {
+            var t = dom.gistTokenInput.value.trim(),
+              g = dom.gistIdInput.value.trim(); if (!t || !g) { Toast.show('请先填入 Token 和 Gist ID'); return; } if (!t.startsWith('ghp_') && !t
+              .startsWith('github_pat_')) Toast.show('Token 格式可能不正确');
+            dom.uploadGistBtn.disabled = true;
+            dom.uploadGistBtn.textContent = '同步中...';
+            GistService.upload(t, g, Store.buildSnapshot()).then(function(d) { Toast.show('✅ 配置已同步到云端'); if (d.id && d.id !== g) { dom.gistIdInput
+                  .value = d.id;
+                Store.setGistId(d.id); } }).catch(function(err) { Toast.show('❌ 同步失败：' + err.message); }).finally(function() { dom.uploadGistBtn
+                .disabled = false;
+              dom.uploadGistBtn.textContent = '⬆️ 同步到云端'; });
+          });
+          dom.downloadGistBtn.addEventListener('click', function() {
+            var t = dom.gistTokenInput.value.trim(),
+              g = dom.gistIdInput.value.trim(); if (!t || !g) { Toast.show('请先填入 Token 和 Gist ID'); return; }
+            dom.downloadGistBtn.disabled = true;
+            dom.downloadGistBtn.textContent = '下载中...';
+            GistService.download(t, g).then(function(d) { if (Store.applySnapshot(d)) { reloadState();
+                WallpaperUI.refreshUI();
+                refreshAll();
+                SuggestionsUI.clear(); if (dom.searchInput.value.trim()) state.requestId++;
+                dom.gistIdInput.value = Store.getGistId();
+                Toast.show('✅ 配置已从云端下载并应用'); } else Toast.show('⚠️ 部分数据无效'); }).catch(function(err) { Toast.show('❌ 下载失败：' + err
+                .message); }).finally(function() { dom.downloadGistBtn.disabled = false;
+              dom.downloadGistBtn.textContent = '⬇️ 从云端下载'; });
+          });
+        }
+        return { init: init, bind: bind };
+      })();
+
+      // ==================== 11. 书签窗口（修复版） ====================
+      var BookmarkWindow = (function() {
+        function open() {
+          if (state.bookmarksWindow && !state.bookmarksWindow.closed) { state.bookmarksWindow.focus(); return; }
+          var blob = new Blob([buildBookmarksPageHtml()], { type: 'text/html;charset=utf-8' });
+          var blobUrl = URL.createObjectURL(blob);
+          state.bookmarksWindow = window.open(blobUrl, '_blank');
+          var checkClosed = setInterval(function() { if (state.bookmarksWindow && state.bookmarksWindow.closed) { clearInterval(checkClosed);
+              URL.revokeObjectURL(blobUrl);
+              state.bookmarksWindow = null; } }, 500);
+          setTimeout(function() { clearInterval(checkClosed); if (!state.bookmarksWindow || state.bookmarksWindow.closed) { URL.revokeObjectURL(
+                blobUrl);
+              state.bookmarksWindow = null; } }, 30000);
+        }
+
+        /* 书签页 HTML 生成 —— 使用和原版 v0.74 一致的、经过验证的拼接方式 */
+        function buildBookmarksPageHtml() {
+          return '<!DOCTYPE html>\n<html lang="zh-CN">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n<title>⭐ 我的收藏</title>\n<style>\n' +
+            getBookmarkCSS() +
+            '\n</style>\n</head>\n<body>\n' +
+            '<div class="toast-container" id="toastContainer"></div>\n' +
+            '<div class="top-bar">\n  <h1>⭐ 我的收藏</h1>\n  <button class="close-page-btn" id="closePageBtn" title="关闭页面（快捷键 Alt+W）">✕ 关闭</button>\n</div>\n' +
+            '<div id="bookmarksContainer"></div>\n' +
+            '<button class="add-cat-btn" id="addCategoryBtn">+ 添加分区</button>\n' +
+            '<script>\n' +
+            getBookmarkJS() +
+            '\n<\/script>\n</body>\n</html>';
+        }
+
+        function getBookmarkCSS() {
+          return '*{margin:0;padding:0;box-sizing:border-box;}body{font-family:\'Segoe UI\',Roboto,\'Helvetica Neue\',sans-serif;background:#1a1a2e;color:#e0e0e0;min-height:100vh;padding:20px;}.top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;padding-bottom:15px;border-bottom:1px solid rgba(255,255,255,0.1);}.top-bar h1{font-size:1.6em;font-weight:300;letter-spacing:1px;color:#fff;}.close-page-btn{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#ccc;padding:8px 16px;border-radius:20px;cursor:pointer;font-size:0.9em;transition:all 0.2s;}.close-page-btn:hover{background:rgba(255,107,107,0.3);color:#fff;border-color:#ff6b6b;}.toast-container{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:9999;pointer-events:none;}.toast{background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);color:#fff;padding:10px 20px;border-radius:30px;font-size:0.9em;opacity:0;transition:opacity 0.3s,transform 0.3s;transform:translateY(-10px);pointer-events:auto;white-space:nowrap;}.toast.show{opacity:1;transform:translateY(0);}.cat-card{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;margin-bottom:16px;overflow:hidden;transition:border-color 0.2s;}.cat-card:hover{border-color:rgba(255,255,255,0.2);}.cat-header{display:flex;align-items:center;padding:14px 18px;cursor:pointer;user-select:none;gap:10px;transition:background 0.2s;}.cat-header:hover{background:rgba(255,255,255,0.04);}.cat-name{flex:1;font-weight:500;font-size:1.05em;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}.cat-count{color:#888;font-size:0.8em;flex-shrink:0;}.cat-arrow{font-size:14px;color:#888;transition:transform 0.3s;flex-shrink:0;}.cat-card.collapsed .cat-arrow{transform:rotate(-90deg);}.cat-actions{display:flex;gap:4px;flex-shrink:0;}.cat-actions button{background:none;border:none;font-size:15px;cursor:pointer;padding:3px 6px;border-radius:4px;transition:all 0.2s;}.icon-edit{color:#5c9ce6;}.icon-edit:hover{background:rgba(92,156,230,0.2);}.icon-delete{color:#ff6b6b;}.icon-delete:hover{background:rgba(255,107,107,0.2);}.cat-body{max-height:3000px;overflow:hidden;transition:max-height 0.4s ease,opacity 0.3s;padding:0 18px 14px;}.cat-card.collapsed .cat-body{max-height:0;padding-top:0;padding-bottom:0;opacity:0;}.bm-list{list-style:none;margin-bottom:10px;}.bm-item{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.04);padding:10px 12px;border-radius:8px;margin-bottom:6px;transition:background 0.2s;}.bm-item:hover{background:rgba(255,255,255,0.08);}.bm-favicon{width:20px;height:20px;border-radius:4px;flex-shrink:0;object-fit:contain;}.bm-favicon-placeholder{width:20px;height:20px;border-radius:4px;flex-shrink:0;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-size:12px;color:#888;}.bm-link{flex:1;color:#c0c0c0;text-decoration:none;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;transition:color 0.2s;}.bm-link:hover{color:#5c9ce6;}.bm-item-actions{display:flex;gap:4px;flex-shrink:0;}.bm-item-actions button{background:none;border:none;font-size:14px;cursor:pointer;padding:3px 5px;border-radius:4px;transition:all 0.2s;}.add-bm-form{display:flex;gap:8px;flex-wrap:wrap;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.1);}.add-bm-form input{flex:1;min-width:120px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);padding:8px 10px;border-radius:6px;color:#fff;font-size:0.9em;outline:none;transition:border 0.2s;}.add-bm-form input:focus{border-color:#5c9ce6;}.add-bm-form button{background:#5c9ce6;border:none;padding:8px 14px;border-radius:6px;color:#fff;font-weight:600;cursor:pointer;transition:background 0.2s;font-size:0.9em;white-space:nowrap;}.add-bm-form button:hover{background:#4a8ad4;}.add-cat-btn{display:block;width:100%;background:rgba(255,255,255,0.06);border:1px dashed rgba(255,255,255,0.2);padding:12px;border-radius:12px;color:#aaa;cursor:pointer;font-size:0.95em;transition:all 0.2s;margin-top:5px;}.add-cat-btn:hover{background:rgba(255,255,255,0.12);color:#fff;border-color:rgba(255,255,255,0.35);}.empty-state{text-align:center;color:#666;padding:50px 20px;}.empty-icon{font-size:3.5em;display:block;margin-bottom:15px;opacity:0.5;}';
+        }
+
+        /* 书签页 JS —— 保持和原版一致的逻辑，每行独立拼接确保不出语法错误 */
+        function getBookmarkJS() {
+          var lines = [];
+          // 常量注入
+          lines.push('var STORAGE_KEY_BM = { BOOKMARKS: "' + STORAGE_KEY.BOOKMARKS + '", BOOKMARKS_COLLAPSED: "' + STORAGE_KEY
+            .BOOKMARKS_COLLAPSED + '" };');
+          lines.push('var DEFAULT_BOOKMARKS = ' + JSON.stringify(DEFAULT_BOOKMARKS) + ';');
+
+          // 工具函数
+          lines.push('function escapeHtml(text){var m={"&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;","\'":"&#039;"};return String(text).replace(/[&<>"\'"]/g,function(c){return m[c];});}');
+          lines.push(
+            'function genId(){return "id_"+Date.now().toString(36)+"_"+Math.random().toString(36).substr(2,6);}');
+          lines.push(
+            'function normUrl(url){url=String(url).trim();if(!url)return"";try{if(!/^https?:\\/\\//i.test(url))url="https://"+url;var p=new URL(url);if(p.protocol!=="http:"&&p.protocol!=="https:")return url;return p.href;}catch(e){return url;}}'
+            );
+          lines.push(
+            'function getFav(url){try{return"https://www.google.com/s2/favicons?domain="+encodeURIComponent(new URL(url).hostname)+"&sz=32";}catch(e){return"";}}'
+            );
+
+          // Toast
+          lines.push(
+            'var toastTimer=null;function showToast(msg,dur){if(dur===undefined)dur=2000;if(toastTimer)clearTimeout(toastTimer);var c=document.getElementById("toastContainer");var old=c.querySelector(".toast");if(old){old.classList.remove("show");setTimeout(function(){if(old.parentNode)old.parentNode.removeChild(old);},300);}var t=document.createElement("div");t.className="toast";t.textContent=msg;c.appendChild(t);void t.offsetWidth;t.classList.add("show");toastTimer=setTimeout(function(){t.classList.remove("show");setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t);},300);},dur);}'
+            );
+
+          // 数据操作
+          lines.push(
+            'function loadBm(){try{var s=localStorage.getItem(STORAGE_KEY_BM.BOOKMARKS);return s?JSON.parse(s):JSON.parse(JSON.stringify(DEFAULT_BOOKMARKS));}catch(e){return JSON.parse(JSON.stringify(DEFAULT_BOOKMARKS));}}'
+            );
+          lines.push('function saveBm(v){localStorage.setItem(STORAGE_KEY_BM.BOOKMARKS,JSON.stringify(v));}');
+          lines.push(
+            'function loadCollapsed(){try{var s=localStorage.getItem(STORAGE_KEY_BM.BOOKMARKS_COLLAPSED);return s?JSON.parse(s):{};}catch(e){return{};}}'
+            );
+          lines.push(
+            'function saveCollapsedState(){var s={};document.querySelectorAll(".cat-card").forEach(function(c){var id=c.getAttribute("data-cat-id");if(id)s[id]=c.classList.contains("collapsed");});localStorage.setItem(STORAGE_KEY_BM.BOOKMARKS_COLLAPSED,JSON.stringify(s));}'
+            );
+
+          // 状态变量
+          lines.push('var bookmarks = loadBm();');
+          lines.push('var collapsedIds = loadCollapsed();');
+          lines.push('var container = document.getElementById("bookmarksContainer");');
+
+          // renderAll 函数（核心渲染逻辑，保持和原版完全一致）
+          lines.push('function renderAll(){');
+          lines.push('  var cards = document.querySelectorAll(".cat-card");');
+          lines.push(
+            '  cards.forEach(function(c){ var id = c.getAttribute("data-cat-id"); if (id) collapsedIds[id] = c.classList.contains("collapsed"); });');
+          lines.push('  container.innerHTML = "";');
+          lines.push('  if (bookmarks.length === 0) {');
+          lines.push(
+            '    container.innerHTML = \'<div class="empty-state"><span class="empty-icon">📂</span>还没有收藏<br>点击下方「+ 添加分区」开始</div>\';');
+          lines.push('    return;');
+          lines.push('  }');
+          lines.push('  bookmarks.forEach(function(cat, catIdx) {');
+          lines.push('    var card = document.createElement("div");');
+          lines.push('    card.className = "cat-card";');
+          lines.push('    card.setAttribute("data-cat-id", cat.id);');
+          lines.push('    var hdr = document.createElement("div");');
+          lines.push('    hdr.className = "cat-header";');
+          lines.push(
+            '    hdr.innerHTML = \'<span class="cat-name">📁 \' + escapeHtml(cat.name) + \'</span><span class="cat-count">\' + cat.websites.length + \' 个</span><div class="cat-actions"><button class="icon-edit" title="重命名">✎</button><button class="icon-delete" title="删除">🗑️</button></div><span class="cat-arrow">▼</span>\';'
+            );
+          lines.push('    var body = document.createElement("div");');
+          lines.push('    body.className = "cat-body";');
+          lines.push('    var list = document.createElement("div");');
+          lines.push('    list.className = "bm-list";');
+          lines.push('    cat.websites.forEach(function(w, wIdx) {');
+          lines.push('      var item = document.createElement("div");');
+          lines.push('      item.className = "bm-item";');
+          lines.push('      var fav = getFav(w.url);');
+          lines.push('      var img = document.createElement("img");');
+          lines.push('      img.className = "bm-favicon";');
+          lines.push('      if (fav) img.src = fav; else img.style.display = "none";');
+          lines.push('      img.alt = ""; img.loading = "lazy";');
+          lines.push(
+            '      img.onerror = function(){ this.style.display = "none"; var ph = this.nextElementSibling; if (ph && ph.classList.contains("bm-favicon-placeholder")) ph.style.display = "flex"; };'
+            );
+          lines.push(
+            '      img.onload = function(){ if (this.naturalWidth > 0) { this.style.display = ""; var ph = this.nextElementSibling; if (ph && ph.classList.contains("bm-favicon-placeholder")) ph.style.display = "none"; } };'
+            );
+          lines.push('      item.appendChild(img);');
+          lines.push('      var ph = document.createElement("span");');
+          lines.push('      ph.className = "bm-favicon-placeholder";');
+          lines.push('      ph.textContent = "🌐";');
+          lines.push('      if (fav) ph.style.display = "none";');
+          lines.push('      item.appendChild(ph);');
+          lines.push('      var a = document.createElement("a");');
+          lines.push('      a.href = w.url; a.target = "_blank"; a.rel = "noopener";');
+          lines.push('      a.className = "bm-link";');
+          lines.push('      a.title = w.name + " — " + w.url;');
+          lines.push('      a.textContent = w.name;');
+          lines.push('      a.addEventListener("click", function(e) { e.stopPropagation(); });');
+          lines.push('      item.appendChild(a);');
+          lines.push('      var acts = document.createElement("div");');
+          lines.push('      acts.className = "bm-item-actions";');
+          lines.push('      var eb = document.createElement("button");');
+          lines.push('      eb.className = "icon-edit"; eb.title = "编辑"; eb.textContent = "✎";');
+          lines.push(
+            '      eb.addEventListener("click", function(e) { e.stopPropagation(); e.preventDefault(); editWeb(catIdx, wIdx); });');
+          lines.push('      acts.appendChild(eb);');
+          lines.push('      var db = document.createElement("button");');
+          lines.push('      db.className = "icon-delete"; db.title = "删除"; db.textContent = "🗑️";');
+          lines.push(
+            '      db.addEventListener("click", function(e) { e.stopPropagation(); e.preventDefault(); delWeb(catIdx, wIdx); });');
+          lines.push('      acts.appendChild(db);');
+          lines.push('      item.appendChild(acts);');
+          lines.push('      list.appendChild(item);');
+          lines.push('    });');
+          lines.push('    body.appendChild(list);');
+          lines.push('    var form = document.createElement("div");');
+          lines.push('    form.className = "add-bm-form";');
+          lines.push('    var ni = document.createElement("input");');
+          lines.push('    ni.type = "text"; ni.placeholder = "网站名称"; ni.autocomplete = "off";');
+          lines.push('    var ui = document.createElement("input");');
+          lines.push('    ui.type = "text"; ui.placeholder = "网址，如 https://..."; ui.autocomplete = "off";');
+          lines.push('    var ab = document.createElement("button");');
+          lines.push('    ab.textContent = "添加";');
+          lines.push(
+            '    ab.addEventListener("click", function(e) { e.stopPropagation(); addWeb(catIdx, ni, ui); });');
+          lines.push(
+            '    ui.addEventListener("keydown", function(e) { if (e.key === "Enter") { e.stopPropagation(); addWeb(catIdx, ni, ui); } });');
+          lines.push('    form.appendChild(ni); form.appendChild(ui); form.appendChild(ab);');
+          lines.push('    body.appendChild(form);');
+          lines.push('    card.appendChild(hdr); card.appendChild(body);');
+          lines.push('    if (collapsedIds[cat.id]) card.classList.add("collapsed");');
+          lines.push('    container.appendChild(card);');
+          lines.push(
+            '    hdr.addEventListener("click", function(e) { if (e.target.closest("button")) return; card.classList.toggle("collapsed"); collapsedIds[cat.id] = card.classList.contains("collapsed"); saveCollapsedState(); });'
+            );
+          lines.push(
+            '    hdr.querySelector(".icon-edit").addEventListener("click", function(e) { e.stopPropagation(); renameCat(catIdx); });');
+          lines.push(
+            '    hdr.querySelector(".icon-delete").addEventListener("click", function(e) { e.stopPropagation(); delCat(catIdx); });');
+          lines.push('  });');
+          lines.push('}');
+
+          // 操作函数
+          lines.push(
+            'function addWeb(catIdx, ni, ui) { var n = ni.value.trim(); var u = ui.value.trim(); if (!n) { showToast("请输入网站名称"); ni.focus(); return; } if (!u) { showToast("请输入网址"); ui.focus(); return; } u = normUrl(u); if (!u) { ui.focus(); return; } var cat = bookmarks[catIdx]; if (!cat) return; cat.websites.push({ id: genId(), name: n, url: u }); saveBm(bookmarks); ni.value = ""; ui.value = ""; renderAll(); showToast("\\"" + n + "\\" 已添加到「" + cat.name + "」"); }'
+            );
+          lines.push(
+            'function editWeb(catIdx, wIdx) { var w = bookmarks[catIdx].websites[wIdx]; if (!w) return; var n = prompt("修改网站名称：", w.name); if (n === null) return; n = n.trim(); if (!n) { showToast("名称不能为空"); return; } var u = prompt("修改网址：", w.url); if (u === null) return; u = u.trim(); if (!u) { showToast("网址不能为空"); return; } u = normUrl(u); if (!u) return; w.name = n; w.url = u; saveBm(bookmarks); renderAll(); showToast("网站已更新"); }'
+            );
+          lines.push(
+            'function delWeb(catIdx, wIdx) { var cat = bookmarks[catIdx]; var w = cat.websites[wIdx]; if (!w) return; cat.websites.splice(wIdx, 1); saveBm(bookmarks); renderAll(); showToast("\\"" + w.name + "\\" 已删除"); }'
+            );
+          lines.push(
+            'function addCategory() { var n = prompt("请输入分区名称："); if (n === null) return; n = n.trim(); if (!n) { showToast("分区名称不能为空"); return; } if (bookmarks.some(function(c) { return c.name.toLowerCase() === n.toLowerCase(); })) { showToast("分区「" + n + "」已存在"); return; } bookmarks.push({ id: genId(), name: n, websites: [] }); saveBm(bookmarks); renderAll(); showToast("分区「" + n + "」已创建"); }'
+            );
+          lines.push(
+            'function renameCat(idx) { var cat = bookmarks[idx]; if (!cat) return; var n = prompt("修改分区名称：", cat.name); if (n === null) return; n = n.trim(); if (!n) { showToast("分区名称不能为空"); return; } if (bookmarks.some(function(c, i) { return i !== idx && c.name.toLowerCase() === n.toLowerCase(); })) { showToast("分区「" + n + "」已存在"); return; } cat.name = n; saveBm(bookmarks); renderAll(); showToast("分区已重命名"); }'
+            );
+          lines.push(
+            'function delCat(idx) { var cat = bookmarks[idx]; if (!cat) return; var msg = "确定删除分区「" + cat.name + "」？"; if (cat.websites.length > 0) msg += "\\n分区内的 " + cat.websites.length + " 个网站将一并删除。"; if (!confirm(msg)) return; delete collapsedIds[cat.id]; saveCollapsedState(); bookmarks.splice(idx, 1); saveBm(bookmarks); renderAll(); showToast("分区「" + cat.name + "」已删除"); }'
+            );
+
+          // 事件绑定（在 DOM 加载后执行）
+          lines.push(
+            'document.getElementById("addCategoryBtn").addEventListener("click", addCategory);');
+          lines.push(
+            'document.getElementById("closePageBtn").addEventListener("click", function() { window.close(); setTimeout(function() { showToast("请手动关闭此标签页 (Ctrl+W / Cmd+W)", 4000); }, 300); });'
+            );
+          lines.push(
+            'document.addEventListener("keydown", function(e) { if (e.altKey && e.key === "w") window.close(); });');
+
+          // 初始渲染
+          lines.push('renderAll();');
+
+          return lines.join('\n');
+        }
+
+        function bind() { dom.bookmarksBtn.addEventListener('click', open); }
+        return { bind: bind };
+      })();
+
+      // ==================== 12. 全局刷新 ====================
+      function reloadState() {
+        state.engines = Store.getEngines();
+        state.currentIndex = Store.getCurrentIndex();
+        state.wallpaper = Store.getWallpaper();
+        state.suggestionSource = Store.getSuggestionSource();
+        state.autofocus = Store.getAutofocus();
+        if (state.currentIndex >= state.engines.length || state.currentIndex < 0) { state.currentIndex = 0;
+          Store.setCurrentIndex(0); }
+      }
+
+      function refreshAll() {
+        EngineListUI.render();
+        EngineDropdownUI.render();
+      }
+
+      // ==================== 13. 应用初始化 ====================
+      function init() {
+        PanelUI.bind();
+        CollapseUI.init();
+        CollapseUI.restore();
+        WallpaperUI.init();
+        EngineListUI.bindEvents();
+        EngineListUI.bindAddForm();
+        EngineDropdownUI.bind();
+        SuggestionsUI.bind();
+        AutofocusUI.init();
+        SuggestionSourceUI.init();
+        DataIO.bind();
+        GistSyncUI.init();
+        GistSyncUI.bind();
+        BookmarkWindow.bind();
+        refreshAll();
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
